@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use inquire::{error::InquireResult, Select};
 
 fn main() -> InquireResult<()> {
-    let ans: Currency = Select::new("Currency:", Currency::variants().to_vec()).prompt()?;
+    let ans: Currency = Select::new("Currency:", Currency::VARIANTS.to_vec()).prompt()?;
 
     match ans {
         Currency::BRL | Currency::USD | Currency::CAD | Currency::EUR | Currency::GBP => {
@@ -39,18 +39,30 @@ enum Currency {
     LTC,
 }
 
+//impl Currency {
+//    fn variants() -> &'static [Currency] {
+//        &[
+//            Self::BRL,
+//            Self::USD,
+//            Self::CAD,
+//            Self::EUR,
+//            Self::GBP,
+//            Self::BTC,
+//            Self::LTC,
+//        ]
+//    }
+//}
+
 impl Currency {
-    fn variants() -> &'static [Currency] {
-        &[
-            Self::BRL,
-            Self::USD,
-            Self::CAD,
-            Self::EUR,
-            Self::GBP,
-            Self::BTC,
-            Self::LTC,
-        ]
-    }
+    const VARIANTS: &'static [Currency] = &[
+        Self::BRL,
+        Self::USD,
+        Self::CAD,
+        Self::EUR,
+        Self::GBP,
+        Self::BTC,
+        Self::LTC,
+    ];
 }
 
 impl Display for Currency {
