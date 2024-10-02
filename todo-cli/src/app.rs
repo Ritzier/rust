@@ -3,7 +3,7 @@ use std::{
     io::{BufWriter, Write},
 };
 
-use inquire::{error::InquireResult, Confirm, Select, Text};
+use inquire::{Confirm, Select, Text};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
