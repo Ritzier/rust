@@ -1,8 +1,8 @@
 mod app;
 
 use app::App;
-use inquire::error::InquireResult;
+use app::Result;
 
-fn main() -> InquireResult<()> {
-    App::new("todo.json".into()).run()
+fn main() -> Result<()> {
+    App::new("todo.json".into())?.run()
 }

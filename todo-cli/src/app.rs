@@ -5,6 +5,17 @@ use std::{
 
 use inquire::{error::InquireResult, Confirm, Select, Text};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum TodoError {
+    #[error("Json Error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("Inquire Error: {0}")]
+    Inquire(#[from] inquire::InquireError),
+}
+
+pub type Result<T> = std::result::Result<T, TodoError>;
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct App {
@@ -19,21 +30,21 @@ struct Task {
 }
 
 impl App {
-    pub fn new(file_path: String) -> Self {
+    pub fn new(file_path: String) -> Result<Self> {
         if let Ok(file) = fs::File::open(&file_path) {
-            let tasks: Vec<Task> = serde_json::from_reader(file).unwrap();
-            Self { tasks, file_path }
+            let tasks: Vec<Task> = serde_json::from_reader(file)?;
+            Ok(Self { tasks, file_path })
         } else {
-            Self {
+            Ok(Self {
                 tasks: vec![],
                 file_path,
-            }
+            })
         }
         //data = read_to_string(fiile);
         //Self { tasks: vec![] }
     }
 
-    pub fn run(&mut self) -> InquireResult<()> {
+    pub fn run(&mut self) -> Result<()> {
         loop {
             let options = vec![
                 "Add Task",
@@ -60,7 +71,7 @@ impl App {
         Ok(())
     }
 
-    fn add_task(&mut self) -> InquireResult<()> {
+    fn add_task(&mut self) -> Result<()> {
         let task_description = Text::new("Enter the task description:").prompt()?;
 
         self.tasks.push(Task {
@@ -71,7 +82,7 @@ impl App {
         Ok(())
     }
 
-    fn view_tasks(&self) -> InquireResult<()> {
+    fn view_tasks(&self) -> Result<()> {
         if self.tasks.is_empty() {
             println!("No tasks available");
         } else {
@@ -83,7 +94,7 @@ impl App {
         Ok(())
     }
 
-    fn toggle_complete(&mut self) -> InquireResult<()> {
+    fn toggle_complete(&mut self) -> Result<()> {
         if self.tasks.is_empty() {
             println!("No tasks avaiable to complete.");
             return Ok(());
@@ -110,7 +121,7 @@ impl App {
         Ok(())
     }
 
-    fn remove_task(&mut self) -> InquireResult<()> {
+    fn remove_task(&mut self) -> Result<()> {
         if self.tasks.is_empty() {
             println!("No tasks available to remove.");
             return Ok(());
@@ -148,7 +159,7 @@ impl App {
         Ok(())
     }
 
-    fn save_json(&self) -> serde_json::Result<()> {
+    fn save_json(&self) -> Result<()> {
         let file = fs::File::create(&self.file_path).unwrap();
         let mut writer = BufWriter::new(file);
         serde_json::to_writer(&mut writer, &self.tasks)?;
