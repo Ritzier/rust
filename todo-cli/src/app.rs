@@ -1,17 +1,36 @@
-use inquire::{error::InquireResult, Confirm, Select, Text};
+use std::{
+    fs,
+    io::{BufWriter, Write},
+};
 
+use inquire::{error::InquireResult, Confirm, Select, Text};
+use serde::{Deserialize, Serialize};
+
+#[derive(Default, Serialize, Deserialize)]
 pub struct App {
     tasks: Vec<Task>,
+    file_path: String,
 }
 
+#[derive(Default, Serialize, Deserialize)]
 struct Task {
     description: String,
     completed: bool,
 }
 
 impl App {
-    pub fn new(file: String) -> Self {
-        Self { tasks: vec![] }
+    pub fn new(file_path: String) -> Self {
+        if let Ok(file) = fs::File::open(&file_path) {
+            let tasks: Vec<Task> = serde_json::from_reader(file).unwrap();
+            Self { tasks, file_path }
+        } else {
+            Self {
+                tasks: vec![],
+                file_path,
+            }
+        }
+        //data = read_to_string(fiile);
+        //Self { tasks: vec![] }
     }
 
     pub fn run(&mut self) -> InquireResult<()> {
@@ -30,7 +49,10 @@ impl App {
                 "View Tasks" => self.view_tasks()?,
                 "Toggle Complete" => self.toggle_complete()?,
                 "Remove Task" => self.remove_task()?,
-                "Quit" => break,
+                "Quit" => {
+                    self.save_json().unwrap();
+                    break;
+                }
                 _ => continue,
             }
         }
@@ -123,6 +145,14 @@ impl App {
             println!("Task removal canceled.");
         }
 
+        Ok(())
+    }
+
+    fn save_json(&self) -> serde_json::Result<()> {
+        let file = fs::File::create(&self.file_path).unwrap();
+        let mut writer = BufWriter::new(file);
+        serde_json::to_writer(&mut writer, &self.tasks)?;
+        writer.flush().unwrap();
         Ok(())
     }
 }
