@@ -1,12 +1,7 @@
-use std::time::Duration;
-
 use color_eyre::Result;
-use ratatui::{
-    crossterm::event::{self, Event, KeyCode, KeyEventKind},
-    DefaultTerminal,
-};
+use ratatui::DefaultTerminal;
 
-use todo::{TodoItem, TodoList};
+use todo::TodoList;
 
 mod handle_events;
 mod result;
