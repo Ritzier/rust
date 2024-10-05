@@ -16,8 +16,8 @@ pub struct TodoItem {
 }
 
 impl TodoList {
-    pub fn new(file: &String) -> io::Result<Self> {
-        let todo = Self::from_json(file.clone()).unwrap_or_default();
+    pub fn new(file: &str) -> io::Result<Self> {
+        let todo = Self::from_json(file.to_string()).unwrap_or_default();
         Ok(Self {
             state: ListState::default(),
             todo,
