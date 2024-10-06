@@ -1,19 +1,20 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{
-        palette::tailwind::{BLUE, SLATE},
-        Color, Modifier, Style, Stylize,
-    },
-    symbols,
-    text::{Line, Span},
-    widgets::{
-        Block, Borders, Clear, HighlightSpacing, List, ListItem, Padding, Paragraph,
-        StatefulWidget, Widget, Wrap,
-    },
+    style::{palette::tailwind::SLATE, Color},
+    text::Line,
+    widgets::{ListItem, Widget},
 };
 
-use super::{todo::TodoItem, App, AppState, CurrentlyEditing};
+use super::{todo::TodoItem, App};
+
+mod content;
+mod navbar;
+mod popup_adding;
+mod popup_deleting;
+mod popup_editing;
+mod popup_exiting;
+mod title;
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -36,184 +37,6 @@ impl Widget for &mut App {
         self.render_popup_editing(area, buf);
         self.render_popup_exiting(area, buf);
         self.render_popup_deleting(area, buf);
-    }
-}
-
-impl App {
-    fn render_title(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Todo Application").render(area, buf);
-    }
-
-    // TODO: current mode | key hint
-    fn render_nav(&self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("nav").render(area, buf);
-    }
-
-    fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
-        let block = Block::new()
-            .title(Line::raw("Todo List").centered())
-            .borders(Borders::TOP)
-            .border_set(symbols::border::EMPTY)
-            .border_style(Style::new().fg(SLATE.c100).bg(BLUE.c800))
-            .bg(SLATE.c950);
-
-        let items: Vec<ListItem> = self
-            .todo_list
-            .todo
-            .iter()
-            .enumerate()
-            .map(|(i, todo_item)| {
-                let color = alternate_colors(i);
-                ListItem::from(todo_item).bg(color)
-            })
-            .collect();
-
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(Style::new().bg(SLATE.c800).add_modifier(Modifier::BOLD))
-            .highlight_symbol(">")
-            .highlight_spacing(HighlightSpacing::Always);
-
-        StatefulWidget::render(list, area, buf, &mut self.todo_list.state)
-    }
-
-    fn render_selected(&self, area: Rect, buf: &mut Buffer) {
-        let info = if let Some(i) = self.todo_list.state.selected() {
-            match self.todo_list.todo[i].completed {
-                true => format!("✓ DONE: {}", self.todo_list.todo[i].description),
-                false => format!("☐ TODO: {}", self.todo_list.todo[i].description),
-            }
-        } else {
-            "Nothing selected...".to_string()
-        };
-
-        let block = Block::new()
-            .title(Line::raw("TODO Info").centered())
-            .borders(Borders::TOP)
-            .border_set(symbols::border::EMPTY)
-            .border_style(Style::new().fg(SLATE.c100).bg(BLUE.c800))
-            .bg(SLATE.c950)
-            .padding(Padding::horizontal(1));
-
-        Paragraph::new(info)
-            .block(block)
-            .bg(SLATE.c950)
-            .wrap(Wrap { trim: false })
-            .render(area, buf);
-    }
-
-    fn render_popup_adding(&self, area: Rect, buf: &mut Buffer) {
-        if self.appstate == AppState::Adding {
-            let popup_block = Block::default()
-                .title("Enter a new key-value pair")
-                .borders(Borders::NONE)
-                .style(Style::default().bg(Color::DarkGray));
-
-            let area = percentage_centered_area(60, 25, area);
-            Clear.render(area, buf);
-            popup_block.render(area, buf);
-
-            let popup_chunks =
-                Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
-                    .margin(1)
-                    .split(area);
-
-            let mut key_block = Block::default().title("Key").borders(Borders::ALL);
-            let mut value_block = Block::default().title("Value").borders(Borders::ALL);
-
-            let active_style = Style::default().bg(Color::LightYellow).fg(Color::Black);
-
-            if let Some(currently_editing) = &self.currently_editing {
-                match currently_editing {
-                    CurrentlyEditing::Todo => key_block = key_block.style(active_style),
-                    CurrentlyEditing::Description => value_block = value_block.style(active_style),
-                }
-            }
-
-            let key_text = Paragraph::new(self.todo_input.clone()).block(key_block);
-            key_text.render(popup_chunks[0], buf);
-            let value_text = Paragraph::new(self.description_input.clone()).block(value_block);
-            value_text.render(popup_chunks[1], buf);
-        }
-    }
-
-    fn render_popup_exiting(&self, area: Rect, buf: &mut Buffer) {
-        if self.appstate == AppState::Exiting {
-            let popup_block = Block::default()
-                .borders(Borders::ALL)
-                .style(Style::default().fg(Color::DarkGray));
-
-            let exit_text = vec![Line::from(vec![
-                Span::styled("Are you want to quit?", Style::default().fg(Color::Red)),
-                Span::styled(" (y/n)", Style::default().fg(Color::DarkGray)),
-            ])];
-
-            let exit_paragraph = Paragraph::new(exit_text)
-                .block(popup_block)
-                .centered()
-                .wrap(Wrap { trim: false });
-
-            let area = centered_area(3, 40, area);
-            Clear.render(area, buf);
-            exit_paragraph.render(area, buf);
-        }
-    }
-
-    fn render_popup_deleting(&self, area: Rect, buf: &mut Buffer) {
-        if let AppState::Deleting(_) = self.appstate {
-            let popup_block = Block::default()
-                .borders(Borders::ALL)
-                .style(Style::default().fg(Color::DarkGray));
-
-            let delete_text = vec![Line::from(vec![
-                Span::styled("Delete current todo?", Style::default().fg(Color::Red)),
-                Span::styled(" (y/n)", Style::default().fg(Color::DarkGray)),
-            ])];
-
-            let delete_paragraph = Paragraph::new(delete_text)
-                .block(popup_block)
-                .centered()
-                .wrap(Wrap { trim: false });
-
-            let area = centered_area(3, 40, area);
-            Clear.render(area, buf);
-            delete_paragraph.render(area, buf);
-        }
-    }
-
-    fn render_popup_editing(&self, area: Rect, buf: &mut Buffer) {
-        if let AppState::Editing(_) = self.appstate {
-            let popup_block = Block::default()
-                .title("Enter a new key-value pair")
-                .borders(Borders::NONE)
-                .style(Style::default().bg(Color::DarkGray));
-
-            let area = percentage_centered_area(60, 25, area);
-            Clear.render(area, buf);
-            popup_block.render(area, buf);
-
-            let popup_chunks =
-                Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
-                    .margin(1)
-                    .split(area);
-
-            let mut key_block = Block::default().title("Key").borders(Borders::ALL);
-            let mut value_block = Block::default().title("Value").borders(Borders::ALL);
-
-            let active_style = Style::default().bg(Color::LightYellow).fg(Color::Black);
-
-            if let Some(currently_editing) = &self.currently_editing {
-                match currently_editing {
-                    CurrentlyEditing::Todo => key_block = key_block.style(active_style),
-                    CurrentlyEditing::Description => value_block = value_block.style(active_style),
-                }
-            }
-
-            let key_text = Paragraph::new(self.todo_input.clone()).block(key_block);
-            key_text.render(popup_chunks[0], buf);
-            let value_text = Paragraph::new(self.description_input.clone()).block(value_block);
-            value_text.render(popup_chunks[1], buf);
-        }
     }
 }
 
