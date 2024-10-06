@@ -11,7 +11,7 @@ pub struct TodoList {
 #[derive(Serialize, Deserialize)]
 pub struct TodoItem {
     pub completed: bool,
-    pub info: String,
+    pub todo: String,
     pub description: String,
 }
 
@@ -41,7 +41,7 @@ impl TodoItem {
     pub fn new(completed: bool, info: String, description: String) -> Self {
         Self {
             completed,
-            info,
+            todo: info,
             description,
         }
     }

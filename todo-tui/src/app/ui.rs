@@ -28,10 +28,11 @@ impl Widget for &mut App {
             Layout::vertical([Constraint::Fill(1), Constraint::Fill(1)]).areas(content_area);
 
         App::render_title(title_bar, buf);
-        App::render_nav(nav_bar, buf);
+        self.render_nav(nav_bar, buf);
         self.render_list(vertical1, buf);
         self.render_selected(vertical2, buf);
 
+        self.render_popup_adding(area, buf);
         self.render_popup_editing(area, buf);
         self.render_popup_exiting(area, buf);
         self.render_popup_deleting(area, buf);
@@ -44,8 +45,8 @@ impl App {
     }
 
     // TODO: current mode | key hint
-    fn render_nav(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Nav").render(area, buf);
+    fn render_nav(&self, area: Rect, buf: &mut Buffer) {
+        Paragraph::new("nav").render(area, buf);
     }
 
     fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
@@ -101,8 +102,8 @@ impl App {
             .render(area, buf);
     }
 
-    fn render_popup_editing(&self, area: Rect, buf: &mut Buffer) {
-        if let Some(editing) = &self.currently_editing {
+    fn render_popup_adding(&self, area: Rect, buf: &mut Buffer) {
+        if self.appstate == AppState::Adding {
             let popup_block = Block::default()
                 .title("Enter a new key-value pair")
                 .borders(Borders::NONE)
@@ -122,9 +123,11 @@ impl App {
 
             let active_style = Style::default().bg(Color::LightYellow).fg(Color::Black);
 
-            match &editing {
-                CurrentlyEditing::Todo => key_block = key_block.style(active_style),
-                CurrentlyEditing::Description => value_block = value_block.style(active_style),
+            if let Some(currently_editing) = &self.currently_editing {
+                match currently_editing {
+                    CurrentlyEditing::Todo => key_block = key_block.style(active_style),
+                    CurrentlyEditing::Description => value_block = value_block.style(active_style),
+                }
             }
 
             let key_text = Paragraph::new(self.todo_input.clone()).block(key_block);
@@ -157,7 +160,7 @@ impl App {
     }
 
     fn render_popup_deleting(&self, area: Rect, buf: &mut Buffer) {
-        if self.appstate == AppState::Deleting {
+        if let AppState::Deleting(_) = self.appstate {
             let popup_block = Block::default()
                 .borders(Borders::ALL)
                 .style(Style::default().fg(Color::DarkGray));
@@ -175,6 +178,41 @@ impl App {
             let area = centered_area(3, 40, area);
             Clear.render(area, buf);
             delete_paragraph.render(area, buf);
+        }
+    }
+
+    fn render_popup_editing(&self, area: Rect, buf: &mut Buffer) {
+        if let AppState::Editing(_) = self.appstate {
+            let popup_block = Block::default()
+                .title("Enter a new key-value pair")
+                .borders(Borders::NONE)
+                .style(Style::default().bg(Color::DarkGray));
+
+            let area = percentage_centered_area(60, 25, area);
+            Clear.render(area, buf);
+            popup_block.render(area, buf);
+
+            let popup_chunks =
+                Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .margin(1)
+                    .split(area);
+
+            let mut key_block = Block::default().title("Key").borders(Borders::ALL);
+            let mut value_block = Block::default().title("Value").borders(Borders::ALL);
+
+            let active_style = Style::default().bg(Color::LightYellow).fg(Color::Black);
+
+            if let Some(currently_editing) = &self.currently_editing {
+                match currently_editing {
+                    CurrentlyEditing::Todo => key_block = key_block.style(active_style),
+                    CurrentlyEditing::Description => value_block = value_block.style(active_style),
+                }
+            }
+
+            let key_text = Paragraph::new(self.todo_input.clone()).block(key_block);
+            key_text.render(popup_chunks[0], buf);
+            let value_text = Paragraph::new(self.description_input.clone()).block(value_block);
+            value_text.render(popup_chunks[1], buf);
         }
     }
 }
@@ -222,8 +260,8 @@ fn alternate_colors(i: usize) -> Color {
 impl From<&TodoItem> for ListItem<'_> {
     fn from(value: &TodoItem) -> Self {
         let line = match value.completed {
-            false => Line::styled(format!(" ☐ {}", value.info), SLATE.c200),
-            true => Line::styled(format!(" ✓ {}", value.info), SLATE.c500),
+            false => Line::styled(format!(" ☐ {}", value.todo), SLATE.c200),
+            true => Line::styled(format!(" ✓ {}", value.todo), SLATE.c500),
         };
         ListItem::new(line)
     }

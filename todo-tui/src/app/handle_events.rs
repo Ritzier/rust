@@ -1,9 +1,15 @@
 use std::time::Duration;
 
 use color_eyre::Result;
-use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use ratatui::crossterm::event::{self, Event, KeyEventKind};
 
-use super::{todo::TodoItem, App, AppState, CurrentlyEditing};
+use super::{App, AppState, CurrentlyEditing};
+
+mod key_adding;
+mod key_deleting;
+mod key_editing;
+mod key_exiting;
+mod key_main;
 
 impl App {
     pub fn handle_events(&mut self) -> Result<()> {
@@ -12,101 +18,56 @@ impl App {
             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
                     match self.appstate {
-                        AppState::Main => match key.code {
-                            // AppState::Main => AppState::Exiting
-                            KeyCode::Char('q') => self.appstate = AppState::Exiting,
-                            // AppState::Editing => AppState::Main
-                            KeyCode::Char('e') => {
-                                self.appstate = AppState::Editing;
-                                self.currently_editing = Some(CurrentlyEditing::Todo);
-                            }
-                            KeyCode::Char('j') | KeyCode::Down => self.select_next(),
-                            KeyCode::Char('k') | KeyCode::Up => self.select_prev(),
-                            KeyCode::Char(' ') | KeyCode::Enter => self.toggle_todo(),
-                            KeyCode::Char('d') | KeyCode::Backspace => {
-                                if let Some(i) = self.todo_list.state.selected() {
-                                    self.currently_usize = Some(i);
-                                    self.appstate = AppState::Deleting;
-                                }
-                            }
-                            _ => {}
-                        },
-
-                        AppState::Editing => match key.code {
-                            // Exit from editing to main
-                            KeyCode::Esc => {
-                                self.appstate = AppState::Main;
-                                self.currently_editing = None
-                            }
-                            // Toggle key value editing
-                            KeyCode::Tab => self.toggle_editing(),
-                            KeyCode::Char(v) => {
-                                if let Some(currently_editing) = &self.currently_editing {
-                                    match currently_editing {
-                                        CurrentlyEditing::Todo => self.todo_input.push(v),
-                                        CurrentlyEditing::Description => {
-                                            self.description_input.push(v)
-                                        }
-                                    }
-                                }
-                            }
-                            // Delete current string
-                            KeyCode::Backspace => {
-                                if let Some(currently_editing) = &self.currently_editing {
-                                    match currently_editing {
-                                        CurrentlyEditing::Todo => {
-                                            self.todo_input.pop();
-                                        }
-                                        CurrentlyEditing::Description => {
-                                            self.description_input.pop();
-                                        }
-                                    }
-                                }
-                            }
-                            // Push current key,value string -> TodoItem
-                            KeyCode::Enter => {
-                                if let Some(currently_editing) = &self.currently_editing {
-                                    match currently_editing {
-                                        CurrentlyEditing::Todo => {
-                                            self.currently_editing =
-                                                Some(CurrentlyEditing::Description)
-                                        }
-                                        CurrentlyEditing::Description => {
-                                            let new_todo = TodoItem::new(
-                                                false,
-                                                self.todo_input.clone(),
-                                                self.description_input.clone(),
-                                            );
-                                            self.todo_list.todo.push(new_todo);
-                                            self.todo_input = String::new();
-                                            self.description_input = String::new();
-                                            self.currently_editing = None;
-                                            self.appstate = AppState::Main;
-                                        }
-                                    }
-                                }
-                            }
-                            _ => {}
-                        },
-
-                        AppState::Deleting => match key.code {
-                            KeyCode::Char('y') => {
-                                self.delete_current_todo();
-                                self.editing_to_main();
-                            }
-                            KeyCode::Char('n') => self.editing_to_main(),
-                            _ => {}
-                        },
-
-                        AppState::Exiting => match key.code {
-                            KeyCode::Char('y') => self.quit = true,
-                            KeyCode::Char('n') => self.appstate = AppState::Main,
-                            _ => {}
-                        },
+                        AppState::Main => self.main_key_event(key.code),
+                        AppState::Adding => self.adding_key_events(key.code),
+                        AppState::Deleting(i) => self.deleting_key_events(key.code, i),
+                        AppState::Exiting => self.exiting_key_events(key.code),
+                        AppState::Editing(i) => self.editing_key_events(key.code, i),
                     }
                 }
             }
         }
         Ok(())
+    }
+
+    fn clear_input(&mut self) {
+        self.todo_input.clear();
+        self.description_input.clear();
+        self.currently_editing = None;
+    }
+
+    fn toggle_currently_editing(&mut self) {
+        match self.currently_editing {
+            Some(CurrentlyEditing::Todo) => {
+                self.currently_editing = Some(CurrentlyEditing::Description)
+            }
+            Some(CurrentlyEditing::Description) => {
+                self.currently_editing = Some(CurrentlyEditing::Todo)
+            }
+            None => self.currently_editing = Some(CurrentlyEditing::Todo),
+        }
+    }
+
+    fn push_char(&mut self, character: char) {
+        match self.currently_editing {
+            Some(CurrentlyEditing::Todo) => self.todo_input.push(character),
+            Some(CurrentlyEditing::Description) => self.description_input.push(character),
+            None => {
+                self.currently_editing = Some(CurrentlyEditing::Todo);
+                self.todo_input.push(character)
+            }
+        }
+    }
+
+    fn backspace_char(&mut self) {
+        match self.currently_editing {
+            Some(CurrentlyEditing::Todo) => {
+                self.todo_input.pop();
+            }
+            Some(CurrentlyEditing::Description) => {
+                self.description_input.pop();
+            }
+            None => {}
+        }
     }
 }
