@@ -3,6 +3,9 @@
 //! in a separate thread.
 //! When a client connects, the server reads data sent by the client, print the
 //! request, and responds with a basic HTTP response
+//!
+//! Start the server `cargo run`
+//! Another Terminal run command `echo "Hello" | nc localhost 8080`
 
 use bytes::BytesMut;
 use std::io::{self, Read, Write};
