@@ -10,14 +10,14 @@
 use bytes::BytesMut;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::thread;
+use std::{env, thread};
 
 fn handle_client(mut stream: TcpStream) -> io::Result<()> {
     // In Rust, one character is 8bit
-    let mut buffer = BytesMut::with_capacity(1);
+    let mut buffer = BytesMut::with_capacity(1024);
 
     // Read data from the stream into a temporary buffer
-    let mut temp_buffer = [0; 1];
+    let mut temp_buffer = [0; 1024];
     let bytes_read = stream.read(&mut temp_buffer)?;
 
     // Extend the BytesMut buffer with the read data
@@ -29,7 +29,7 @@ fn handle_client(mut stream: TcpStream) -> io::Result<()> {
     // Response
     let response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello from Rust!";
 
-    // Writeh the response back to the client
+    // Write the response back to the client
     stream.write_all(response.as_bytes())?;
     stream.flush()?;
 
@@ -37,7 +37,9 @@ fn handle_client(mut stream: TcpStream) -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
-    let addr = "127.0.0.1:8080";
+    let addr = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "127.0.0.1:8080".to_string());
     let listener = TcpListener::bind(&addr)?;
     println!("Server listening on {}", addr);
 
