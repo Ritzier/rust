@@ -1,0 +1,19 @@
+[package]
+name = "simple_reqwest_tui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossterm = { version = "0.28.1", features = ["event-stream"] }
+futures = "0.3.31"
+humansize = "2.1.3"
+ratatui = "0.29.0"
+reqwest = { version = "0.12.9", features = ["stream"] }
+thiserror = "2.0.0"
+tokio = { version = "1.41.0", features = [
+  "rt-multi-thread",
+  "sync",
+  "time",
+  "macros",
+  "fs",
+] }
