@@ -1,0 +1,10 @@
+[package]
+name = "use_fantoccini"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fantoccini = "0.21.2"
+serde_json = "1.0.132"
+thiserror = "2.0.3"
+tokio = { version = "1.41.1", features = ["full"] }
