@@ -1,3 +1,30 @@
+//! This example demonstrates a basic Axum server with two endpoints:
+//! - A GET endpoint that returns a Simple greeting
+//! - A POST endpoint that accepts JSON data and returns a user object
+//!
+//! ## GET request
+//!
+//! ```
+//! curl http://localhost:8000
+//! ```
+//! Expected Response:
+//! ```
+//! Hello World!
+//! ```
+//!
+//! ## POST request
+//!
+//! ```
+//! curl -X POST http://localhost:8000 \
+//!      -H "Content-Type: application/json" \
+//!      -d '{"username": "alice}"'
+//! ```
+//!
+//! Expected Response:
+//! ```
+//! {"id":1, "username": "ritzier"}
+//! ```
+
 use axum::{
     http::StatusCode,
     routing::{get, post},
