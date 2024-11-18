@@ -1,0 +1,23 @@
+[package]
+name = "compression"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7.9"
+serde_json = "1.0.133"
+tokio = { version = "1.41.1", features = ["macros", "rt-multi-thread"] }
+tower = "0.5.1"
+tower-http = { version = "0.6.1", features = [
+  "compression-full",
+  "decompression-full",
+] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[dev-dependencies]
+assert-json-diff = "2.0"
+brotli = "7"
+flate2 = "1"
+http = "1"
+zstd = "0.13"
