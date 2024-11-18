@@ -13,8 +13,9 @@ use tower::ServiceExt;
 use super::*;
 
 #[tokio::test]
-async fn handle_uncompressed_reqeust_bodies() {
+async fn handle_uncompressed_request_bodies() {
     // Given
+
     let body = json();
 
     let compressed_request = http::Request::post("/")
@@ -29,7 +30,7 @@ async fn handle_uncompressed_reqeust_bodies() {
     // Then
 
     assert_eq!(response.status(), StatusCode::OK);
-    assert_json_eq!(json_from_response(response).await, json())
+    assert_json_eq!(json_from_response(response).await, json());
 }
 
 #[tokio::test]
@@ -99,7 +100,7 @@ async fn decompress_zstd_request_bodies() {
 }
 
 #[tokio::test]
-async fn do_not_comporess_response_bodies() {
+async fn do_not_compress_response_bodies() {
     // Given
     let request = http::Request::post("/")
         .header(header::CONTENT_TYPE, "application/json")
@@ -121,7 +122,7 @@ async fn compress_response_bodies_with_gzip() {
     // Given
     let request = http::Request::post("/")
         .header(header::CONTENT_TYPE, "application/json")
-        .header(header::CONTENT_ENCODING, "gzip")
+        .header(header::ACCEPT_ENCODING, "gzip")
         .body(json_body(&json()))
         .unwrap();
 
@@ -147,7 +148,7 @@ async fn compress_response_bodies_with_br() {
     // Given
     let request = http::Request::post("/")
         .header(header::CONTENT_TYPE, "application/json")
-        .header(header::CONTENT_ENCODING, "br")
+        .header(header::ACCEPT_ENCODING, "br")
         .body(json_body(&json()))
         .unwrap();
 
@@ -172,7 +173,7 @@ async fn compress_response_bodies_with_zstd() {
     // Given
     let request = http::Request::post("/")
         .header(header::CONTENT_TYPE, "application/json")
-        .header(header::CONTENT_ENCODING, "zstd")
+        .header(header::ACCEPT_ENCODING, "zstd")
         .body(json_body(&json()))
         .unwrap();
 
@@ -193,11 +194,11 @@ async fn compress_response_bodies_with_zstd() {
 
 fn json() -> Value {
     json!({
-        "name": "foo",
-        "mainProduct": {
-            "typeId": "product",
-            "id": "p1"
-        }
+      "name": "foo",
+      "mainProduct": {
+        "typeId": "product",
+        "id": "p1"
+      },
     })
 }
 
