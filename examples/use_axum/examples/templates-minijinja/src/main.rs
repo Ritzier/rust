@@ -10,7 +10,16 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
-    // init template engine and add templates
+    // run it
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+        .await
+        .unwrap();
+    println!("listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app()).await.unwrap();
+}
+
+fn app() -> Router {
+    // init tempalte engine and add templates
     let mut env = Environment::new();
     env.add_template("layout", include_str!("../templates/layout.jinja"))
         .unwrap();
@@ -21,22 +30,15 @@ async fn main() {
     env.add_template("about", include_str!("../templates/about.jinja"))
         .unwrap();
 
-    // pass env to handlers via state
+    // pass env to handler via state
     let app_state = Arc::new(AppState { env });
 
     // define routes
-    let app = Router::new()
+    Router::new()
         .route("/", get(handler_home))
         .route("/content", get(handler_content))
         .route("/about", get(handler_about))
-        .with_state(app_state);
-
-    // run it
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
-    println!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+        .with_state(app_state)
 }
 
 async fn handler_home(State(state): State<Arc<AppState>>) -> Result<Html<String>, StatusCode> {
