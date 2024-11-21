@@ -48,7 +48,7 @@ Creating migrations/2024-11-21-082037_create_posts/down.sql
 ```sql
 CREATE TABLE posts (
     id SERIAL PRIMARY KEY,
-    title CARCHAR NOT NULL,
+    title VARCHAR NOT NULL,
     body TEXT NOT NULL,
     published BOOLEAN NOT NULL DEFAULT FALSE
 )
