@@ -11,6 +11,10 @@ dotenvy = "0.15"
 name = "show_posts"
 path = "src/bin/show_posts.rs"
 
+[[bin]]
+name = "write_post"
+path = "src/bin/write_post.rs"
+
 [lib]
 name = "use_diesel"
 path = "src/lib.rs"
