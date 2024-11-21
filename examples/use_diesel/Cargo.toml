@@ -19,6 +19,10 @@ path = "src/bin/write_post.rs"
 name = "publish_post"
 path = "src/bin/publish_post.rs"
 
+[[bin]]
+name = "get_post"
+path = "src/bin/get_post.rs"
+
 [lib]
 name = "use_diesel"
 path = "src/lib.rs"
