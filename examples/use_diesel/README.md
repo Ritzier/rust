@@ -20,7 +20,7 @@ diesel migration run
 3. Run Rust Project
 
 ```sh
-cargo run
+cargo run --bin show_posts
 ```
 
 ## Project Startup
