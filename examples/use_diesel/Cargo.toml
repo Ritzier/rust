@@ -8,8 +8,8 @@ diesel = { version = "2", features = ["postgres"] }
 dotenvy = "0.15"
 
 [[bin]]
-name = "use_diesel"
-path = "src/main.rs"
+name = "show_posts"
+path = "src/bin/show_posts.rs"
 
 [lib]
 name = "use_diesel"
