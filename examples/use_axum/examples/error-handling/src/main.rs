@@ -29,9 +29,17 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+        .await
+        .unwrap();
+    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app()).await.unwrap();
+}
+
+fn app() -> Router {
     let state = AppState::default();
 
-    let app = Router::new()
+    Router::new()
         .route("/users", post(users_create))
         .layer(
             TraceLayer::new_for_http()
@@ -50,13 +58,7 @@ async fn main() {
                     tracing::debug_span!("request", %method, %uri, matched_path)
                 }),
         )
-        .with_state(state);
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
-    tracing::debug!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+        .with_state(state)
 }
 
 #[derive(Default, Clone)]
