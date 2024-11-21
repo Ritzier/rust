@@ -23,6 +23,10 @@ path = "src/bin/publish_post.rs"
 name = "get_post"
 path = "src/bin/get_post.rs"
 
+[[bin]]
+name = "delete_post"
+path = "src/bin/delete_post.rs"
+
 [lib]
 name = "use_diesel"
 path = "src/lib.rs"
