@@ -1,0 +1,16 @@
+[package]
+name = "use_diesel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+diesel = { version = "2", features = ["postgres"] }
+dotenvy = "0.15"
+
+[[bin]]
+name = "use_diesel"
+path = "src/main.rs"
+
+[lib]
+name = "use_diesel"
+path = "src/lib.rs"
