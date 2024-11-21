@@ -6,6 +6,23 @@ used to simplify database operations in Rust
 [Official Website](https://diesel.rs/)
 [Github](https://github.com/diesel-rs/diesel)
 
+## Run examples
+
+1. Startup the docker-compose
+
+2. Diesel setup
+
+```sh
+source .env
+diesel migration run
+```
+
+3. Run Rust Project
+
+```sh
+cargo run
+```
+
 ## Project Startup
 
 1. Startup Postgres
