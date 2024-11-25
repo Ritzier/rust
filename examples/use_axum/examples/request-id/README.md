@@ -22,6 +22,5 @@ curl -H "x-request-id: test-123" http://localhost:3000
 ```sh
 2024-11-25T20:00:43.338342Z DEBUG http_request{request_id="test-323 1"}: tower_http::trace::on_request: started processing request
 2024-11-25T20:00:43.338418Z  INFO http_request{request_id="test-323 1"}: request_id: Hello world!
-2024-11-25T20:00:43.338455Z DEBUG http_request{request_id="test-323 1"}: tower_http::trace::on_response: finished processing request la
-tency=0 ms status=200
+2024-11-25T20:00:43.338455Z DEBUG http_request{request_id="test-323 1"}: tower_http::trace::on_response: finished processing request latency=0 ms status=200
 ```
