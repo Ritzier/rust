@@ -10,6 +10,9 @@ use tokio_stream::StreamExt as _;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+#[cfg(test)]
+mod test;
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
