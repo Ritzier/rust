@@ -1,0 +1,20 @@
+[package]
+name = "sse"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7.9"
+axum-extra = { version = "0.9.6", features = ["typed-header"] }
+futures = "0.3.31"
+headers = "0.4.0"
+tokio = { version = "1.41.1", features = ["full"] }
+tokio-stream = "0.1.16"
+tower-http = { version = "0.6.2", features = ["fs", "trace"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[dev-dependencies]
+eventsource-stream = "0.2"
+reqwest = { version = "0.12", features = ["stream"] }
+reqwest-eventsource = "0.6"
