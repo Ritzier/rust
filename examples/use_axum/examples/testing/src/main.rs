@@ -51,7 +51,7 @@ mod tests {
     use axum::{
         body::Body,
         extract::connect_info::MockConnectInfo,
-        http::{self, Request, StatusCode},
+        http::{self, header, Request, StatusCode},
     };
     use http_body_util::BodyExt;
     use serde_json::{json, Value}; // for `collect`
