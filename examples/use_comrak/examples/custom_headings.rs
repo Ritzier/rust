@@ -44,7 +44,7 @@ impl HeadingAdapter for CustomHeadingAdapter {
 
         let search_include = !&heading.content.contains("hide");
 
-        write!(output, "<h{}>", heading.level)?;
+        write!(output, "<h{}", heading.level)?;
 
         if let Some(sourcepos) = sourcepos {
             write!(output, " data-sourcepos=\"{}\"", sourcepos)?;
