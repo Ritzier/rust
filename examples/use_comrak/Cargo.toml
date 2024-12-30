@@ -5,3 +5,7 @@ edition = "2021"
 
 [dependencies]
 comrak = "0.32.0"
+
+[dev-dependencies]
+slug = "0.1"
+ntest = "0.9"
