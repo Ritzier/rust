@@ -53,8 +53,127 @@ analyze and optimize.
 
 - **Input**: AST
 - **Process**:
-  - **Desugaring**: Removes syntactic sugar and simplifies constructs (e.g., for loops are desugared into iterator-based
-    code)
+
+  - **Desugaring**: Removes syntactic sugar and simplifies constructs
+
+    - `if let`: `if let` syntax is a convenient way to match a pattern and execute code conditionally. It is syntactic
+      sugar for a full `match` statement.
+
+      Code:
+
+      ```rust
+      if let Some(x) = option {
+          println!("Value: {}", x)
+      }
+      ```
+
+      Desugared:
+
+      ```rust
+      match option {
+          Some(x) => {
+              println!("Value: {}", x)
+          }
+          _ => {}
+      }
+      ```
+
+    - `for`: `for` loop in Rust is syntactic sugar for iterating over an **iterator**. It gets desugared into a
+      combination of a `loop` and calls to the iterator's methods.
+
+      Code:
+
+      ```rust
+      for x in 0..5 {
+          println!("{}", x)
+      }
+      ```
+
+      Desugared:
+
+      ```rust
+      let mut iter = (0..5).into_iter();
+      loop {
+          match iter.next() {
+              Some(x) => {
+                  println!("{}", x);
+              }
+              None => break,
+          }
+      }
+      ```
+
+    - `while let`: `while let` construct is syntactic sugar for a loop combined with a `match` statement
+
+      Code:
+
+      ```rust
+      while let Some(x) = option {
+          println!("Value: {}", x)
+      }
+      ```
+
+      Desugared:
+
+      ```rust
+      loop {
+          match option {
+              Some(x) => {
+                  println!("Value: {}", x);
+              }
+              _ => break,
+          }
+      }
+      ```
+
+      - `?`(Question Mark Operator): `?` operator is syntactic sugar for propagating errors in functions that return a
+        `Result` or `Option`
+
+      Code:
+
+      ```rust
+      fn example() -> Result<i32, String> {
+          let x = some_function()?;
+          Ok(x)
+      }
+      ```
+
+      Desugared:
+
+      ```rust
+      fn example() -> Result<i32, String> {
+          let x = match some_function() {
+              Ok(value) => value,
+              Err(err) => return Err(err),
+          };
+          Ok(x)
+      }
+      ```
+
+      - The `?` operator is transformed into a `match` statement that either extracts the `Ok` value or propagates the
+        `Err`
+
+    - `Closures`: `Closures` in Rust are desugared into structs with implementation of the `Fn`, `FnMut`, `FnOnce`
+      traits
+
+      code:
+
+      ```rust
+      let closure = |x| x + 1;
+      ```
+
+      Desugared
+
+      ```rust
+      struct Closure;
+      impl Fn(i32) -> i32 for Closure {
+          fn call(&self, x: i32) -> i32 {
+              x + 1
+          }
+      }
+      let closure = Closure;
+      ```
+
   - **Name Resolution**:
     - Resolves variables, functions, types, and imports (use statements).
     - Ensures identifiers are mapped to valid declarations.
@@ -65,6 +184,7 @@ analyze and optimize.
       println!("{}", y); // Error: cannot find value `y` in this scope
       }
     ```
+
 - **Output**: HIR, which is more uniform and focused on the program's semantics
 
 ## 5. MIR (Mid-Level Intermediate Representation)
