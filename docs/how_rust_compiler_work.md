@@ -116,3 +116,14 @@ The final stage is linking
   - Combines the compiled code with external libraries (like Rust standard library)
   - Resolves external references
 - **Output**: The final binary executable.
+
+## Summary of Stages:
+
+1. **Lexing**: Tokenizes source code
+2. **Parsing**: Produces the AST
+3. **AST Processing**: Performs early analysis, including name resolution
+4. **HIR**: Simplifies the AST for semantic analysis
+5. **MIR**: Performs borrow checking and lifetime analysis
+6. **LLVM IR**: Optimizes the program for machine code generation
+7. **Machine Code**: Produces architecture-specific code
+8. **Linking**: Combines everything into the final executable
