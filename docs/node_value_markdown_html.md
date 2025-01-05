@@ -1,12 +1,12 @@
 ## Block Elements
 
-| NodeValue  | Markdown                              | Html                                                   |
-| ---------- | ------------------------------------- | ------------------------------------------------------ |
-| Document   | Entire Document                       | Typically no specific tag, contains the whole document |
-| Paragraph  | Plain text separated by blank lines   | `<p>...</p>`                                           |
-| Heading    | `# Heading 1`, `## Heading 2`         | `<h1>...</h1>`, `<h2>...</h2>`                         |
-| BlockQuote | `> This is a blcokquote`              | `<blockquote>...</blockquote>`                         |
-| List       | `- Unordered item`, `1. Ordered item` | `<ul>...</ul>`, `<ol>...</ol>`                         |
+| NodeValue            | Markdown                              | Html                                                   |
+| -------------------- | ------------------------------------- | ------------------------------------------------------ |
+| Document             | Entire Document                       | Typically no specific tag, contains the whole document |
+| Paragraph            | Plain text separated by blank lines   | `<p>...</p>`                                           |
+| Heading(NodeHeading) | `# Heading 1`, `## Heading 2`         | `<h1>...</h1>`, `<h2>...</h2>`                         |
+| BlockQuote           | `> This is a blcokquote`              | `<blockquote>...</blockquote>`                         |
+| List(NodeList)       | `- Unordered item`, `1. Ordered item` | `<ul>...</ul>`, `<ol>...</ol>`                         |
 
 ### CodeBlock
 
@@ -28,7 +28,7 @@ fn main() {
 
 | NodeValue       | Markdown                                 | Html                                            |
 | --------------- | ---------------------------------------- | ----------------------------------------------- |
-| Text            | Regular text                             | Text content without specific tags              |
+| Text(String)    | Regular text                             | Text content without specific tags              |
 | Emph            | `*italic*`, `_italic_`                   | `<em>...</em>`                                  |
 | Strong          | `**bold**`, `__bold__`                   | `<strong>...</strong>`                          |
 | Image(NodeLink) | `![Alt](/path/to/img.jpg "image title")` | `<img src="/path/to/img.jpg" alt="image title"` |
