@@ -6,8 +6,23 @@
 | Paragraph  | Plain text separated by blank lines   | `<p>...</p>`                                           |
 | Heading    | `# Heading 1`, `## Heading 2`         | `<h1>...</h1>`, `<h2>...</h2>`                         |
 | BlockQuote | `> This is a blcokquote`              | `<blockquote>...</blockquote>`                         |
-| CodeBlock  | `rust fn main() {}`                   | `<pre><code class="language-rust">...</code></pre>`    |
 | List       | `- Unordered item`, `1. Ordered item` | `<ul>...</ul>`, `<ol>...</ol>`                         |
+
+### CodeBlock
+
+`NodeValue::CodeBlock(NodeCodeBlock)`: Represents a code block with language info
+
+`Markdown`:
+
+````text
+```markdown
+fn main() {
+    println!("Hello world");
+}
+```
+````
+
+`HTML`: `<pre><code class="langugage-rust">...</code></pre>`
 
 ## Inline Elements
 
