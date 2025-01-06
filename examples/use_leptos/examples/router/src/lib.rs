@@ -29,7 +29,7 @@ pub fn RouterExample() -> impl IntoView {
 
     // the signal will be used to set whether we are allowed to access a protected route
     let (logged_in, set_logged_in) = signal(true);
-    let (is_routing, set_is_routing) = signal(true);
+    let (is_routing, set_is_routing) = signal(false);
 
     view! {
         <Router set_is_routing>
