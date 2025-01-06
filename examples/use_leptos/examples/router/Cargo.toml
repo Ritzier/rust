@@ -1,0 +1,24 @@
+[package]
+name = "router"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = 'z'
+codegen-units = 1
+lto = true
+
+[dependencies]
+console_error_panic_hook = "0.1"
+console_log = "1"
+futures = "0.3"
+leptos = { version = "0.7", features = ["csr"] }
+leptos_router = "0.7"
+leptos_router_macro = "0.7"
+serde = "1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tracing-subscriber-wasm = "0.1"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
