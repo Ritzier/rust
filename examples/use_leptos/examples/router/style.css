@@ -1,0 +1,33 @@
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+::view-transition-old(root) {
+    animation: 300ms fade-out;
+}
+
+::view-transition-new(root) {
+    animation: 300ms fade-in;
+}
+
+.router-back::view-transition-old(root) {
+    animation: 300ms fade-in reverse;
+}
+
+.router-back::view-transition-new(root) {
+    animation: 300ms fade-out reverse;
+}

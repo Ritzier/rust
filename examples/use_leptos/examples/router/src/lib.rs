@@ -54,7 +54,7 @@ pub fn RouterExample() -> impl IntoView {
             </nav>
 
             <main>
-                <Routes transition=true fallback=|| "This page could not be found.">
+                <Routes fallback=|| "This page could not be found.">
                     // paths can be creaed using the path!() macro, or provided as types like
                     // StaticSegment("about")
                     <Route path=path!("about") view=About />

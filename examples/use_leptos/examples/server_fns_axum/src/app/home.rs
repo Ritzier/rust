@@ -146,7 +146,7 @@ fn WithAnAction() -> impl IntoView {
     // the type name defaults to the PascalCased function name
     let action = ServerAction::<AddRow>::new();
     //let clear_action = ServerAction::<ClearRows>::new();
-    let clear_action = Action::new(|_: &()| clear_rows());
+    let clear_action = ServerAction::<ClearRows>::new();
 
     // this resource will hold the total number of rows
     // pasing it action.version() means it will refetch whenever the action resolves successfullly

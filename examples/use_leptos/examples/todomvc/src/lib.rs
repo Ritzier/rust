@@ -174,7 +174,7 @@ pub fn TodoMVC() -> impl IntoView {
             Mode::Completed => todos
                 .0
                 .iter()
-                .filter(|todo| !todo.completed.get())
+                .filter(|todo| todo.completed.get())
                 .cloned()
                 .collect(),
         })
