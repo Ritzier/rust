@@ -1,0 +1,18 @@
+body {
+    font-family: sans-serif;
+    text-align: center;
+}
+
+.blog-routes a {
+    text-decoration: none;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    transition: all 0.3s ease;
+}
+
+.blog-routes a:hover {
+    background-color: #f5f5f5;
+    transform: translateX(5px);
+}

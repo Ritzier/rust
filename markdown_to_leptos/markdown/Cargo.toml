@@ -1,0 +1,17 @@
+[package]
+name = "markdown"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+chrono.workspace = true
+comrak.workspace = true
+convert_case.workspace = true
+glob.workspace = true
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true
+syntect.workspace = true
