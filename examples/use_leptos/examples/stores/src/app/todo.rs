@@ -6,7 +6,6 @@ use leptos::prelude::*;
 use reactive_stores::{Field, Patch, Store};
 use serde::{Deserialize, Serialize};
 
-// ID starts higher than 0 because we have a few starting by default
 static NEXT_ID: AtomicUsize = AtomicUsize::new(3);
 
 #[derive(Debug, Store, Serialize, Deserialize)]
@@ -48,7 +47,7 @@ impl Status {
             },
             Status::Scheduled | Status::ScheduledFor { .. } => Status::Done,
             Status::Done => Status::Done,
-        }
+        };
     }
 }
 
@@ -66,7 +65,7 @@ fn data() -> Todos {
     Todos {
         user: User {
             name: "Bob".to_string(),
-            email: "lawblogbobloblaw.com".into(),
+            email: "lawblog@bobloblaw.com".into(),
         },
         todos: vec![
             Todo {
@@ -107,11 +106,12 @@ pub fn App() -> impl IntoView {
         </form>
         <ol>
             // because `todos` is a keyed field, `store.todos()` returns a struct that
-            // directly implements InteIterator, so we can use it in <For/> and
-            // it witt manager reactivity for the store fields correctly
+            // directly implements IntoIterator, so we can use it in <For/> and
+            // it will manage reactivity for the store fields correctly
             <For each=move || store.todos() key=|row| row.id().get() let:todo>
                 <TodoRow store todo />
             </For>
+
         </ol>
         <pre>{move || serde_json::to_string_pretty(&*store.read())}</pre>
     }
@@ -123,7 +123,6 @@ fn UserForm(#[prop(into)] user: Field<User>) -> impl IntoView {
 
     view! {
         {move || error.get().map(|n| view! { <p>{n}</p> })}
-
         <form on:submit:target=move |ev| {
             ev.prevent_default();
             match User::from_event(&ev) {
@@ -156,20 +155,23 @@ fn TodoRow(store: Store<Todos>, #[prop(into)] todo: Field<Todo>) -> impl IntoVie
         <li style:text-decoration=move || {
             status.done().then_some("line-through").unwrap_or_default()
         }>
+
             <p
                 class:hidden=move || editing.get()
                 on:click=move |_| {
                     editing.update(|n| *n = !*n);
                 }
             >
+
                 {move || title.get()}
             </p>
-
             <input
                 class:hidden=move || !(editing.get())
                 type="text"
                 prop:value=move || title.get()
-                on:change=move |ev| { title.set(event_target_value(&ev)) }
+                on:change=move |ev| {
+                    title.set(event_target_value(&ev));
+                }
             />
 
             <button on:click=move |_| {
@@ -184,18 +186,19 @@ fn TodoRow(store: Store<Todos>, #[prop(into)] todo: Field<Todo>) -> impl IntoVie
                         "Pending"
                     }
                 }}
+
             </button>
 
             <button on:click=move |_| {
                 let id = todo.id().get();
-                store.todos().write().retain(|todo| todo.id != id)
+                store.todos().write().retain(|todo| todo.id != id);
             }>"X"</button>
-
             <input
                 type="date"
                 prop:value=move || {
                     todo.status().scheduled_for_date().map(|n| n.get().to_string())
                 }
+
                 class:hidden=move || !todo.status().scheduled_for()
                 on:change:target=move |ev| {
                     if let Some(date) = todo.status().scheduled_for_date() {
@@ -209,6 +212,7 @@ fn TodoRow(store: Store<Todos>, #[prop(into)] todo: Field<Todo>) -> impl IntoVie
                     }
                 }
             />
+
         </li>
     }
 }
