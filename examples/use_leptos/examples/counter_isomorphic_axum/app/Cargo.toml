@@ -1,0 +1,29 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+leptos.workspace = true
+leptos_meta.workspace = true
+leptos_router.workspace = true
+leptos_axum = { workspace = true, optional = true }
+
+thiserror.workspace = true
+send_wrapper = { workspace = true, optional = true }
+gloo-net = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+[features]
+default = []
+hydrate = ["leptos/hydrate", "dep:send_wrapper", "dep:gloo-net", "dep:futures"]
+ssr = [
+  "leptos/ssr",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
+  "dep:leptos_axum",
+  "dep:tokio",
+]
