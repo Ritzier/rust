@@ -25,6 +25,16 @@ impl Config {
         let ggml = get_files(&ggml_path, "bin").await?;
         let wav = get_files(&wav_path, "wav").await?;
 
+        // ggml is 0, return Error
+        if ggml.len() == 0 {
+            return Err(Error::GgmlNotFound);
+        }
+
+        // WAV is 0, return Error
+        if wav.len() == 0 {
+            return Err(Error::WavNotFound);
+        }
+
         println!("Found {} ggml files", ggml.len());
         println!("Found {} wav files", wav.len());
 
