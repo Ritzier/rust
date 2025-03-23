@@ -1,0 +1,10 @@
+[package]
+name = "speech2text"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hound = "3.5.1"
+whisper-rs = "0.14.2"
+thiserror = "2.0.12"
+tokio = { version = "1.44.1", features = ["fs", "macros", "rt-multi-thread"] }

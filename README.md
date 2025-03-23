@@ -1,5 +1,6 @@
 # Rust Project
 
+- [Speech2Text](./Projects/Speech2Text): Speech to Text with `whisper` & `hound`
 - [todo-tui](./Projects/todo-tui): Todo Application with Ratatui
 - [todo-cli](./Projects/todo-cli): Todo Application with Inquire
 
