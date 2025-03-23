@@ -9,6 +9,24 @@ use crate::*;
 pub fn run(config: Config) -> Result<()> {
     whisper_rs::install_logging_hooks();
 
+    // Initialize models
+    let models = config
+        .ggml
+        .into_iter()
+        .map(|path| {
+            (
+                {
+                    WhisperContext::new_with_params(
+                        &path.to_string_lossy(),
+                        WhisperContextParameters::default(),
+                    )
+                }
+                .unwrap(),
+                path,
+            )
+        })
+        .collect::<Vec<_>>();
+
     // Process each WAV file with all GGML models
     for wav in &config.wav {
         let samples = match load_and_validate_audio(&wav) {
@@ -19,9 +37,8 @@ pub fn run(config: Config) -> Result<()> {
             }
         };
 
-        // Process with each model
-        for model_path in &config.ggml {
-            match transcribe_audio(model_path, &samples, &config.language) {
+        for (model, model_path) in &models {
+            match transcribe_audio(&samples, &config.language, model) {
                 Ok(transcript) => print_transcript(&wav, model_path, transcript),
                 Err(e) => eprintln!("Model {} failed: {}", model_path.display(), e),
             }
@@ -51,16 +68,10 @@ fn load_and_validate_audio(path: &Path) -> Result<Vec<f32>> {
 }
 
 fn transcribe_audio(
-    model_path: &Path,
     samples: &[f32],
     language: &str,
+    ctx: &WhisperContext,
 ) -> Result<Vec<(i64, i64, String)>> {
-    // Initialize model context
-    let ctx = WhisperContext::new_with_params(
-        &model_path.to_string_lossy(),
-        WhisperContextParameters::default(),
-    )?;
-
     let mut state = ctx.create_state()?;
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
