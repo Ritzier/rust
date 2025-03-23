@@ -15,7 +15,7 @@ pub fn run(config: Config) -> Result<()> {
         .into_iter()
         .map(|path| {
             tracing::info!(
-                "Initialing {}",
+                "Initialing model: {}",
                 path.file_name()
                     .and_then(|n| n.to_str())
                     .unwrap_or("Unknown model")
@@ -40,7 +40,7 @@ pub fn run(config: Config) -> Result<()> {
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("Unknown WAV");
-        tracing::info!("Processing {}", wav_file_name);
+        tracing::info!("Processing wav: {}", wav_file_name);
 
         let samples = match load_and_validate_audio(&wav) {
             Ok(sample) => sample,
