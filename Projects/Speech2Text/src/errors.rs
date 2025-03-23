@@ -6,6 +6,8 @@ pub enum Error {
         "GGML not found, get it from https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-tiny.bin"
     )]
     GgmlNotFound,
+    #[error("Wav not found")]
+    WavNotFound,
     #[error("Whisper: {0:?}")]
     Whisper(#[from] whisper_rs::WhisperError),
     #[error("Hound: {0:?}")]
