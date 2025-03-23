@@ -1,6 +1,6 @@
 // source code: https://github.com/tazz4843/whisper-rs/blob/master/examples/basic_use.rs
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
@@ -14,6 +14,13 @@ pub fn run(config: Config) -> Result<()> {
         .ggml
         .into_iter()
         .map(|path| {
+            tracing::info!(
+                "Initialing {}",
+                path.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("Unknown model")
+            );
+
             (
                 {
                     WhisperContext::new_with_params(
@@ -29,18 +36,24 @@ pub fn run(config: Config) -> Result<()> {
 
     // Process each WAV file with all GGML models
     for wav in &config.wav {
+        let wav_file_name = wav
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Unknown WAV");
+        tracing::info!("Processing {}", wav_file_name);
+
         let samples = match load_and_validate_audio(&wav) {
             Ok(sample) => sample,
             Err(e) => {
-                eprintln!("Skipping {:?}: {}", wav, e);
+                tracing::error!("Skipping {:?}: {}", wav, e);
                 continue;
             }
         };
 
         for (model, model_path) in &models {
             match transcribe_audio(&samples, &config.language, model) {
-                Ok(transcript) => print_transcript(&wav, model_path, transcript),
-                Err(e) => eprintln!("Model {} failed: {}", model_path.display(), e),
+                Ok(transcript) => print_transcript(&wav_file_name, model_path, transcript),
+                Err(e) => tracing::error!("Model {} failed: {}", model_path.display(), e),
             }
         }
     }
@@ -99,18 +112,16 @@ fn transcribe_audio(
     Ok(transcript)
 }
 
-fn print_transcript(wav: &PathBuf, model_path: &Path, transcript: Vec<(i64, i64, String)>) {
-    println!(
-        "\nTranscription for {:?} using {:?}",
-        wav.file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("Unknown WAV"),
+fn print_transcript(wav_file_name: &str, model_path: &Path, transcript: Vec<(i64, i64, String)>) {
+    tracing::info!(
+        "Transcription for {} using {}",
+        wav_file_name,
         model_path
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("Unknown Model"),
     );
     for (start, end, text) in transcript {
-        println!("[{:5} - {:5}ms] {}", start, end, text);
+        tracing::info!("[{:5} - {:5}ms] {}", start, end, text);
     }
 }

@@ -1,5 +1,6 @@
 mod config;
 mod errors;
+pub mod trace;
 pub mod whisper;
 
 pub use config::Config;

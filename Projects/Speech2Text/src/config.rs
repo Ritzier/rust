@@ -35,8 +35,8 @@ impl Config {
             return Err(Error::WavNotFound);
         }
 
-        println!("Found {} ggml files", ggml.len());
-        println!("Found {} wav files", wav.len());
+        tracing::info!("Found {} ggml files", ggml.len());
+        tracing::info!("Found {} wav files", wav.len());
 
         Ok(Self {
             ggml,
