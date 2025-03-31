@@ -1,95 +1,34 @@
-// source code: https://github.com/tazz4843/whisper-rs/blob/master/examples/basic_use.rs
-
-use std::path::Path;
-
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
-use crate::*;
+use super::*;
+use std::path::PathBuf;
 
-pub fn run(config: Config) -> Result<()> {
+pub fn init() {
     whisper_rs::install_logging_hooks();
-
-    // Initialize models
-    let models = config
-        .ggml
-        .into_iter()
-        .map(|path| {
-            tracing::info!(
-                "Initialing model: {}",
-                path.file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("Unknown model")
-            );
-
-            (
-                {
-                    WhisperContext::new_with_params(
-                        &path.to_string_lossy(),
-                        WhisperContextParameters::default(),
-                    )
-                }
-                .unwrap(),
-                path,
-            )
-        })
-        .collect::<Vec<_>>();
-
-    // Process each WAV file with all GGML models
-    for wav in &config.wav {
-        let wav_file_name = wav
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("Unknown WAV");
-        tracing::info!("Processing wav: {}", wav_file_name);
-
-        let samples = match load_and_validate_audio(&wav) {
-            Ok(sample) => sample,
-            Err(e) => {
-                tracing::error!("Skipping {:?}: {}", wav, e);
-                continue;
-            }
-        };
-
-        for (model, model_path) in &models {
-            match transcribe_audio(&samples, &config.language, model) {
-                Ok(transcript) => print_transcript(&wav_file_name, model_path, transcript),
-                Err(e) => tracing::error!("Model {} failed: {}", model_path.display(), e),
-            }
-        }
-    }
-
-    Ok(())
 }
 
-fn load_and_validate_audio(path: &Path) -> Result<Vec<f32>> {
-    let reader = hound::WavReader::open(&path)?;
-    let spec = reader.spec();
+pub fn create_model(path: &PathBuf) -> Result<WhisperContext> {
+    let model = WhisperContext::new_with_params(
+        &path.to_string_lossy(),
+        WhisperContextParameters::default(),
+    )?;
 
-    // Validate audio format
-    if spec.sample_rate != 16_000 || spec.channels != 1 || spec.bits_per_sample != 16 {
-        return Err(Error::InvalidAudioFormat);
-    }
-
-    // Read samples with proper error handling
-    let samples: Vec<i16> = reader.into_samples::<i16>().map(|x| x.unwrap()).collect();
-
-    // Convert to f32 audio (mono)
-    let mut float_samples = vec![0.0f32; samples.len()];
-    whisper_rs::convert_integer_to_float_audio(&samples, &mut float_samples)?;
-
-    Ok(float_samples)
+    Ok(model)
 }
 
-fn transcribe_audio(
-    samples: &[f32],
-    language: &str,
-    ctx: &WhisperContext,
-) -> Result<Vec<(i64, i64, String)>> {
+pub fn run(model: &WhisperContext, samples: &[f32]) -> Result<Vec<(i64, i64, String)>> {
+    // Start transcribe audio
+    let transcribe = transcribe_audio(&samples, &model)?;
+
+    Ok(transcribe)
+}
+
+fn transcribe_audio(samples: &[f32], ctx: &WhisperContext) -> Result<Vec<(i64, i64, String)>> {
     let mut state = ctx.create_state()?;
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
     // Configure processing parameters
-    params.set_language(Some(language));
+    params.set_language(Some("en"));
     params.set_print_special(false);
     params.set_print_progress(false);
     params.set_print_realtime(false);
@@ -110,18 +49,4 @@ fn transcribe_audio(
     }
 
     Ok(transcript)
-}
-
-fn print_transcript(wav_file_name: &str, model_path: &Path, transcript: Vec<(i64, i64, String)>) {
-    tracing::info!(
-        "Transcription for {} using {}",
-        wav_file_name,
-        model_path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("Unknown Model"),
-    );
-    for (start, end, text) in transcript {
-        tracing::info!("[{:5} - {:5}ms] {}", start, end, text);
-    }
 }

@@ -2,60 +2,49 @@ use std::path::PathBuf;
 
 use tokio::fs;
 
-use crate::*;
+use super::*;
 
-// ggml: OpenAI's Whisper models converted to ggml format for use with `whisper.cpp`
-// https://huggingface.co/ggerganov/whisper.cpp
-// These models are quantized and optimized for efficient inference. They are compatible
-// with the `whisper.cpp` library, enabling local, low-resource speech-to-text processing.
-// wav: Path to the input WAV audio file that will be transcribed. The audio should be
-// in a format compatible with the Whisper model, typically 16kHz mono PCM.
 pub struct Config {
-    pub ggml: Vec<PathBuf>,
-    pub wav: Vec<PathBuf>,
-    pub language: String,
+    pub gglm: Vec<PathBuf>,
+    pub audio: Vec<PathBuf>,
 }
 
 impl Config {
     pub async fn new() -> Result<Self> {
-        let ggml_path = PathBuf::from(format!("{}/ggml/", env!("CARGO_MANIFEST_DIR")));
-        let wav_path = PathBuf::from(format!("{}/wav/", env!("CARGO_MANIFEST_DIR")));
-        let language = "en".to_string();
+        let gglm_path = PathBuf::from(format!("{}/ggml/", env!("CARGO_MANIFEST_DIR")));
+        let audio_path = PathBuf::from(format!("{}/audio/", env!("CARGO_MANIFEST_DIR")));
 
-        let ggml = get_files(&ggml_path, "bin").await?;
-        let wav = get_files(&wav_path, "wav").await?;
+        let gglm = get_files(&gglm_path, vec!["bin"]).await?;
+        let audio = get_files(&audio_path, vec!["mp3", "wav"]).await?;
 
-        // ggml is 0, return Error
-        if ggml.len() == 0 {
+        if gglm.is_empty() {
             return Err(Error::GgmlNotFound);
         }
 
-        // WAV is 0, return Error
-        if wav.len() == 0 {
-            return Err(Error::WavNotFound);
+        if audio.is_empty() {
+            return Err(Error::AudioNotFound);
         }
 
-        tracing::info!("Found {} ggml files", ggml.len());
-        tracing::info!("Found {} wav files", wav.len());
+        tracing::info!("Found {} gglm model", gglm.len());
+        tracing::info!("Found {} audio", audio.len());
 
-        Ok(Self {
-            ggml,
-            wav,
-            language,
-        })
+        Ok(Self { gglm, audio })
     }
 }
 
-async fn get_files(path: &PathBuf, ext: &str) -> Result<Vec<PathBuf>> {
-    let mut files = Vec::new();
+async fn get_files(path: &PathBuf, ext: Vec<&str>) -> Result<Vec<PathBuf>> {
+    let mut files = vec![];
 
     let mut entries = fs::read_dir(&path).await?;
     while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
-        if let Some(file_ext) = path.extension() {
-            if file_ext == ext {
-                files.push(path);
-            }
+        if ext.contains(
+            &path
+                .extension()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default(),
+        ) {
+            files.push(path)
         }
     }
 

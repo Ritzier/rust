@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-hound = "3.5.1"
-whisper-rs = { version = "0.14.2", features = ["cuda"] }
-thiserror = "2.0.12"
+symphonia = { version = "0.5.4", features = ["mp3", "wav"] }
+thiserror = "2.0"
 tokio = { version = "1.44.1", features = ["fs", "macros", "rt-multi-thread"] }
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+whisper-rs = "0.14.2"
+rubato = "0.16.1"
