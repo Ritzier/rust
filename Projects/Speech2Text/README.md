@@ -5,11 +5,6 @@ files to text using [Whisper speech recognition model](https://huggingface.co/gg
 
 ## Feature
 
-- Supports `MP3` and `WAV` audio formats through the [Symphonia](https://github.com/pdeljanov/Symphonia)
-
-- Resampling audio files with [Rubato](https://github.com/HEnquist/rubato)
-- Process multiple audio files with multiple Whisper models
-
 - **Multiple Audio Formats**: Supports `MP3` and `WAV` through the [Symphonia](https://github.com/pdeljanov/Symphonia)
   crate
 - **Audio Processing**: Resamples audio files with [Rubato](https://github.com/HEnquist/rubato)
@@ -27,4 +22,29 @@ If your device supports `CUDA`, enable GPU acceleration by adding the CUDA featu
 
 ```toml
 whisper-rs = { version = "0.14.2", features = ["cuda"] }
+```
+
+## Flow Chart
+
+```mermaid
+flowchart TD
+    A[Start] --> B[Load Audio Files from 'audio' folder]
+    B --> C[Load Whisper Models from 'ggml' folder]
+
+    C --> D{Process each audio file}
+    D --> E[Decode audio using Symphonia]
+    E --> F[Resample audio to 16,000 Hz with Rubato]
+    F --> G{Process with each Whisper model}
+
+    G --> H[Initialize Whisper model]
+    H --> I[Transcribe audio to text]
+    I --> J[Print transcription results]
+
+    J --> K{More models?}
+    K -->|Yes| G
+    K -->|No| L{More audio files?}
+
+    L -->|Yes| D
+    L -->|No| M[End]
+
 ```
