@@ -165,3 +165,41 @@ websocket.send("Fuck");
 // Close the connection
 websocket.close();
 ```
+
+## Mermaid
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant BroadcastChannel
+
+    %% Connection setup
+    Client ->> Server: Connect (WebSocket handshake)
+    Server ->> Client: WebSocket open
+
+    %% Username registration
+    Client ->> Server: Send username
+    Server ->> Server: Check username uniqueness
+
+    alt Username taken
+        Server ->> Client: "Username already taken."
+        Server -->> Client: Close connection
+    else Username accepted
+        Server ->> BroadcastChannel: Broadcast "{username} joined"
+        BroadcastChannel ->> Client: "{username} joined"
+    end
+
+    %% Chat message flow
+    loop While connected
+        Client ->> Server: Send chat message
+        Server ->> BroadcastChannel: Broadcast "{username}: message"
+        BroadcastChannel ->> Client: "{username}: message"
+        BroadcastChannel ->> Other Clients: "{username}: message"
+    end
+
+    %% Disconnection
+    Client -->> Server: Disconnect (close)
+    Server ->> BroadcastChannel: Broadcast "{username} left"
+    BroadcastChannel ->> Other Clients: "{username} left"
+```
