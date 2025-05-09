@@ -15,6 +15,7 @@
             placeholder="username"
         />
         <button id="join-chat" type="button">Join Chat</button>
+        <button id="leave-chat" type="button">Leave Chat</button>
         <textarea
             id="chat"
             style="
@@ -39,11 +40,14 @@
         const join_btn = document.querySelector("#join-chat");
         const textarea = document.querySelector("#chat");
         const input = document.querySelector("#input");
+        const leave_btn = document.querySelector("#leave-chat");
+
+        let websocket = null;
 
         join_btn.addEventListener("click", function (e) {
             this.disabled = true;
 
-            const websocket = new WebSocket("ws://localhost:3000/websocket");
+            websocket = new WebSocket("ws://localhost:3000/websocket");
 
             websocket.onopen = function () {
                 console.log("connection opened");
@@ -68,6 +72,17 @@
                     input.value = "";
                 }
             };
+        });
+
+        leave_btn.addEventListener("click", function (e) {
+            if (websocket && websocket.readyState == WebSocket.OPEN) {
+                websocket.close();
+                websocket = null;
+            }
+
+            textarea.value = "";
+            input.value = "";
+            join_btn.disabled = false;
         });
     </script>
 </html>
