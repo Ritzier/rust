@@ -17,7 +17,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <AutoReload options=options.clone() />
                 <HashedStylesheet options=options.clone() />
-                <HydrationScripts options />
+                <HydrationScripts options=options islands=true islands_router=true />
                 <MetaTags />
             </head>
             <body>
