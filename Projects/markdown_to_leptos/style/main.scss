@@ -6,6 +6,33 @@ body {
     padding: 0;
 }
 
+nav {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem 0;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e1e4e8;
+}
+
+nav a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    font-size: 1.1rem;
+    transition:
+        color 0.2s,
+        border-bottom 0.2s;
+    padding-bottom: 2px;
+    border-bottom: 2px solid transparent;
+}
+
+nav a:hover,
+nav a:focus {
+    color: #0070f3;
+    border-bottom: 2px solid #0070f3;
+    outline: none;
+}
+
 h1 {
     text-align: center;
     margin-top: 2rem;

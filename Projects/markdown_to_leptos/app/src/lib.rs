@@ -37,6 +37,11 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/markdown_to_leptos.css" />
 
         <Router>
+            <nav>
+                <a href="/">"Home"</a>
+                <a href="/blog">"Blog"</a>
+            </nav>
+
             <main>
                 <Routes fallback=|| "Page not found".into_view()>
                     <BlogRoute />
