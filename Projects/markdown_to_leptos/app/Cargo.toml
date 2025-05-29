@@ -3,8 +3,6 @@ name = "app"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 leptos.workspace = true
 leptos_meta.workspace = true
@@ -12,7 +10,6 @@ leptos_router.workspace = true
 leptos_axum = { workspace = true, optional = true }
 markdown = { path = "../markdown" }
 
-http.workspace = true
 thiserror.workspace = true
 
 [features]

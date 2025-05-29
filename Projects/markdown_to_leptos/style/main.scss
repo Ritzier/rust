@@ -1,18 +1,75 @@
 body {
-    font-family: sans-serif;
-    text-align: center;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #fafbfc;
+    color: #222;
+    margin: 0;
+    padding: 0;
 }
 
-.blog-routes a {
-    text-decoration: none;
-    color: #333;
+h1 {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 2.5rem;
+    letter-spacing: 1px;
+    color: #2d3748;
+}
+
+div {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
     display: flex;
     flex-direction: column;
-    padding: 10px;
-    transition: all 0.3s ease;
+    gap: 1.5rem;
 }
 
-.blog-routes a:hover {
-    background-color: #f5f5f5;
-    transform: translateX(5px);
+a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    background: #f7fafc;
+    transition:
+        background 0.2s,
+        box-shadow 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+a:hover {
+    background: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2b6cb0;
+    margin-bottom: 0.2rem;
+}
+
+.date {
+    font-size: 0.95rem;
+    color: #718096;
+    margin-bottom: 0.1rem;
+}
+
+.tags {
+    font-size: 0.9rem;
+    color: #38a169;
+    margin-top: 0.2rem;
+}
+
+@media (max-width: 700px) {
+    div {
+        max-width: 95vw;
+        padding: 0.5rem;
+    }
+    h1 {
+        font-size: 2rem;
+    }
 }

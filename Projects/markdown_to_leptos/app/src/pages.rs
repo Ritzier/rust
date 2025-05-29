@@ -1,7 +1,5 @@
-use leptos::prelude::*;
-use leptos_router::{
-    components::{Outlet, ParentRoute, Route, A},
-    path, MatchNestedRoutes,
-};
+mod blog;
+mod home;
 
-markdown::include_md! {}
+pub use blog::*;
+pub use home::*;

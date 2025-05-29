@@ -1,8 +1,8 @@
 use leptos::prelude::*;
-use leptos_meta::{provide_meta_context, MetaTags, Title};
+use leptos_meta::{provide_meta_context, HashedStylesheet, Link, MetaTags, Stylesheet, Title};
 use leptos_router::{
-    components::{Route, Router, Routes, A},
-    StaticSegment,
+    components::{Route, Router, Routes},
+    path,
 };
 
 mod pages;
@@ -16,9 +16,8 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <AutoReload options=options.clone() />
+                <HashedStylesheet options=options.clone() />
                 <HydrationScripts options />
-                <link rel="stylesheet" id="leptos" href="/pkg/markdown_to_leptos.css" />
-                <link rel="shortcut icon" type="image/ico" href="/favicon.ico" />
                 <MetaTags />
             </head>
             <body>
@@ -33,30 +32,17 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     view! {
-        <Title text="Welcome to Leptos" />
+        <Title text="Welcome to Leptos!" />
+        <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico" />
+        <Stylesheet id="leptos" href="/pkg/markdown_to_leptos.css" />
 
         <Router>
-            <nav>
-                <A href="/">"Home"</A>
-                <A href="/blog">"Blog"</A>
-            </nav>
             <main>
                 <Routes fallback=|| "Page not found".into_view()>
-                    <Route path=StaticSegment("") view=HomePage />
                     <BlogRoute />
+                    <Route path=path!("") view=HomePage />
                 </Routes>
             </main>
         </Router>
-    }
-}
-
-#[component]
-fn HomePage() -> impl IntoView {
-    let (count, set_count) = signal(0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
-
-    view! {
-        <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: "{count}</button>
     }
 }

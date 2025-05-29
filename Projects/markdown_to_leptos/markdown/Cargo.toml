@@ -1,7 +1,7 @@
 [package]
 name = "markdown"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 proc-macro = true
@@ -15,3 +15,6 @@ proc-macro2.workspace = true
 quote.workspace = true
 syn.workspace = true
 syntect.workspace = true
+
+[build-dependencies]
+walkdir = "2.5.0"
