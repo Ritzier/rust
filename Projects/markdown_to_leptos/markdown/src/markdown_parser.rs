@@ -114,7 +114,7 @@ impl Markdown<'_> {
 
                         (
                             quote! {
-                                <#tag>#(#header_children)*</#tag>
+                                <#tag>#(#section_children)*</#tag>
                                 <p class="meta">
                                     #date
                                     #tags
@@ -140,24 +140,9 @@ impl Markdown<'_> {
                     </p>
                 };
 
-                // Check if we're inside a section (H2+ context)
-                if let Some(parent) = node.parent() {
-                    if let NodeValue::Heading(h) = &parent.data.borrow().value {
-                        if h.level > 1 {
-                            // Close the section after paragraph
-                            return (
-                                quote!(), // No header content
-                                quote! {
-                                    #content
-                                    </section>
-                                },
-                            );
-                        }
-                    }
-                }
-
                 (quote!(), content)
             }
+
             // Warning node while compiling
             node => {
                 eprintln!("Warning: Unhandled node encountered: {:?}", node);
