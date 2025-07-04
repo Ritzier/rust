@@ -23,11 +23,20 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-subscriber-wasm = { version = "0.1.0", optional = true }
 
 # HighlightJS (csr)
-js-sys = "0.3.77"
-gloo-utils = { version = "0.2.0", features = ["serde"] }
+js-sys = { version = "0.3.77", optional = true }
+gloo-utils = { version = "0.2.0", features = ["serde"], optional = true }
+gloo-net = { version = "0.6.0", features = ["http"], optional = true }
+
+strum = { version = "0.27.1", features = ["derive"] }
 
 [features]
-hydrate = ["leptos/hydrate", "dep:tracing-subscriber-wasm"]
+hydrate = [
+  "leptos/hydrate",
+  "dep:tracing-subscriber-wasm",
+  "dep:js-sys",
+  "dep:gloo-utils",
+  "dep:gloo-net",
+]
 ssr = [
   "dep:axum",
   "dep:leptos_axum",
