@@ -1,0 +1,119 @@
+@use "sass:color";
+@use "sass:map";
+
+$highlights: (
+    "keyword": "mauve",
+    "built_in": "red",
+    "type": "yellow",
+    "literal": "peach",
+    "number": "peach",
+    "operator": "sky",
+    "punctuation": "subtext1",
+    "property": "teal",
+    "regexp": "pink",
+    "string": "green",
+    "char.escape_": "green",
+    "subst": "subtext0",
+    "symbol": "flamingo",
+    "variable": "mauve",
+    "variable.language_": "mauve",
+    "variable.constant_": "peach",
+    "title": "blue",
+    "title.class_": "yellow",
+    "title.function_": "blue",
+    "params": "text",
+    "comment": "overlay2",
+    "doctag": "red",
+    "meta": "peach",
+    "section": "blue",
+    "tag": "teal",
+    "name": "mauve",
+    "attr": "blue",
+    "attribute": "green",
+    "bullet": "teal",
+    "code": "green",
+    "emphasis": "red",
+    "strong": "red",
+    "formula": "teal",
+    "link": "sapphire",
+    "quote": "green",
+    "selector-tag": "yellow",
+    "selector-id": "blue",
+    "selector-class": "teal",
+    "selector-attr": "mauve",
+    "selector-pseudo": "teal",
+    "template-tag": "flamingo",
+    "template-variable": "flamingo",
+    "addition": "green",
+    "deletion": "red",
+);
+
+$fontStyles: (
+    "emphasis": "italic",
+    "strong": "bold",
+    "link": "italic",
+    "quote": "italic",
+);
+
+@mixin highlights(
+    $color,
+    $format: "inject",
+    $prefix: "ctp-",
+    $important: false
+) {
+    $colors: $color;
+
+    &.hljs {
+        @if $format == "inject" {
+            color: map.get($colors, "text")
+                #{if($important, " !important", "")};
+            background: map.get($colors, "base")
+                #{if($important, " !important", "")};
+        } @else if $format == "rgb" {
+            color: rgb(var(--#{$prefix}text))
+                #{if($important, " !important", "")};
+            background: rgb(var(--#{$prefix}base))
+                #{if($important, " !important", "")};
+        } @else if $format == "variable" {
+            color: var(--#{$prefix}text) #{if($important, " !important", "")};
+            background: var(--#{$prefix}base)
+                #{if($important, " !important", "")};
+        }
+    }
+
+    @each $key, $value in $highlights {
+        .hljs-#{$key} {
+            @if $format == "inject" {
+                color: map.get($colors, $value)
+                    #{if($important, " !important", "")};
+            } @else if $format == "rgb" {
+                color: rgb(var(--#{$prefix}#{$value}))
+                    #{if($important, " !important", "")};
+            } @else if $format == "variable" {
+                color: var(--#{$prefix}#{$value})
+                    #{if($important, " !important", "")};
+            }
+
+            @if map.has-key($fontStyles, $key) {
+                @if map.get($fontStyles, $key) == "bold" {
+                    font-weight: bold#{if($important, " !important", "")};
+                } @else if map.get($fontStyles, $key) == "italic" {
+                    font-style: italic#{if($important, " !important", "")};
+                }
+            }
+
+            @if ($key == "addition" or $key == "deletion") {
+                @if $format == "inject" {
+                    background: rgba(map.get($colors, $value), 0.15)
+                        #{if($important, " !important", "")};
+                } @else if $format == "rgb" {
+                    background: rgb(var(--#{$prefix}#{$value}) / 15%)
+                        #{if($important, " !important", "")};
+                } @else if $format == "variable" {
+                    background: rgb(from var(--#{$prefix}#{$value}) r g b / 15%)
+                        #{if($important, " !important", "")};
+                }
+            }
+        }
+    }
+}

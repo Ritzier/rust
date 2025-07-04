@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "@highlightjs/cdn-assets": "^11.11.1",
+    "sass": "^1.89.2"
+  }
+}

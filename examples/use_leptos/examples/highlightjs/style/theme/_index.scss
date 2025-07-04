@@ -1,0 +1,13 @@
+@use "sass:map";
+@use "mocha";
+@use "../highlight" as *;
+
+@forward "mocha";
+
+@function color($name) {
+    @return map.get(mocha.$mocha, $name);
+}
+
+@mixin highlightjs() {
+    @include highlights(mocha.$mocha, "inject");
+}

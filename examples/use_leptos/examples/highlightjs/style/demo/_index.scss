@@ -1,0 +1,74 @@
+@use "sass:map";
+@use "../theme" as *;
+
+$breakpoints: (
+    mobile: 600px,
+    tablet: 900px,
+    desktop: 1200px,
+);
+
+@mixin respond($breakpoint) {
+    $size: map.get($breakpoints, $breakpoint);
+    @media (max-width: #{$size}) {
+        @content;
+    }
+}
+
+.demo {
+    @include highlightjs();
+    height: 100%;
+    display: grid;
+    grid-template:
+        "header" 50px
+        "main" 1fr
+        / 1fr;
+
+    .header {
+        grid-area: header;
+        background-color: color("blue");
+        font-weight: bold;
+        align-content: center;
+        text-align: center;
+    }
+
+    .main {
+        grid-area: main;
+        display: grid;
+        grid-template:
+            "code-write divider code-block" 1fr
+            / 1fr 1px 1fr;
+
+        .code-write {
+            grid-area: code-write;
+            background-color: color("base");
+            color: color("text");
+            border: none;
+            padding: 1em;
+            resize: none;
+
+            &:focus {
+                border: 1px solid color("green");
+            }
+        }
+
+        .divider {
+            grid-area: divider;
+            background-color: color("surface0");
+        }
+
+        .code-block {
+            grid-area: code-block;
+            background-color: color("base");
+            color: color("text");
+            padding: 1em;
+        }
+
+        @include respond(mobile) {
+            grid-template:
+                "code-write"
+                "divider" 1px
+                "code-block"
+                / 1fr;
+        }
+    }
+}
