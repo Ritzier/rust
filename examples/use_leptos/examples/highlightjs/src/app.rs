@@ -76,7 +76,7 @@ fn DemoPage() -> impl IntoView {
     view! {
         <div class="demo">
             <header class="header">
-                <span>"HighlightJS"</span>
+                <span class="title">"HighlightJS"</span>
 
                 <SelectLanguage language set_language />
             </header>
@@ -140,9 +140,7 @@ fn SelectLanguage(
     set_language: WriteSignal<Language>,
 ) -> impl IntoView {
     view! {
-        <select prop:value=move || {
-            language.get().to_string()
-        }>
+        <select class="language-select" prop:value=move || { language.get().to_string() }>
             {Language::iter()
                 .map(|lang| {
                     view! {

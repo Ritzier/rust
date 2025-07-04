@@ -25,10 +25,28 @@ $breakpoints: (
 
     .header {
         grid-area: header;
+        display: grid;
         background-color: color("blue");
-        font-weight: bold;
-        align-content: center;
         text-align: center;
+        align-items: center;
+        padding: 1em;
+        grid-template:
+            "title language-select" 1fr
+            / 1fr 80px;
+
+        .title {
+            grid-area: title;
+            font-weight: bold;
+        }
+
+        .language-select {
+            grid-area: language-select;
+            background-color: color("surface0");
+            color: color("text");
+            border-radius: 0.5em;
+            border: none;
+            padding: 0.3em 0.8em;
+        }
     }
 
     .main {
