@@ -60,9 +60,11 @@ $breakpoints: (
             grid-area: code-write;
             background-color: color("base");
             color: color("text");
+            padding: 0.3em;
             border: none;
-            padding: 1em;
             resize: none;
+            white-space: pre;
+            overflow-x: hidden;
 
             &:focus {
                 border: 1px solid color("green");
@@ -78,12 +80,14 @@ $breakpoints: (
             grid-area: code-block;
             background-color: color("base");
             color: color("text");
-            padding: 1em;
+            padding: 0.3em;
+            white-space: pre;
+            overflow-x: auto;
         }
 
         @include respond(mobile) {
             grid-template:
-                "code-write"
+                "code-write" 10em
                 "divider" 1px
                 "code-block"
                 / 1fr;
