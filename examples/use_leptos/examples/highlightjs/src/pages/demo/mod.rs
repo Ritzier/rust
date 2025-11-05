@@ -68,6 +68,13 @@ impl LazyRoute for DemoPageView {
     }
 }
 
+#[cfg(not(feature = "ssr"))]
+#[lazy]
+fn highlight(code: &str, language: &str) -> Result<String, wasm_bindgen::JsValue> {
+    use crate::hljs;
+    hljs::highlight(code, language)
+}
+
 #[component]
 fn HighlightCode(code: ReadSignal<String>, language: ReadSignal<Language>) -> impl IntoView {
     #[cfg(feature = "ssr")]
@@ -78,13 +85,17 @@ fn HighlightCode(code: ReadSignal<String>, language: ReadSignal<Language>) -> im
     #[cfg(not(feature = "ssr"))]
     {
         let (inner, set_inner) = signal(String::new());
-        use crate::hljs;
-        Effect::new(
-            move |_| match hljs::highlight(&code.get(), &language.get().to_lang()) {
-                Ok(result) => set_inner.set(result),
-                Err(_e) => set_inner.set(code.get()),
-            },
-        );
+        Effect::new(move |_| {
+            let a = code.get();
+            let b = language.get().to_string();
+
+            leptos::task::spawn(async move {
+                match highlight(&a, &b).await {
+                    Ok(result) => set_inner.set(result),
+                    Err(_e) => set_inner.set(code.get()),
+                }
+            });
+        });
 
         view! {
             <pre class="code-block">
