@@ -1,0 +1,6 @@
+[package]
+name = "use_iceoryx2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
