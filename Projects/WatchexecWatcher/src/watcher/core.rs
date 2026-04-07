@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf, absolute};
 use std::sync::Arc;
 
+use globset::GlobSet;
 use tokio::sync::mpsc::{self, Receiver};
 use tokio::sync::{RwLock, oneshot};
 use tokio::task::{JoinError, JoinHandle};
@@ -22,10 +23,16 @@ pub enum FileEvent {
     Modify,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum FileType {
+    Config,
+    File,
+}
+
 #[derive(Debug)]
 pub struct Watcher {
     pub watchexec_task: JoinHandle<Result<Result<(), CriticalError>, JoinError>>,
-    pub event_receiver: Receiver<HashMap<PathBuf, FileEvent>>,
+    pub event_receiver: Receiver<HashMap<FileType, FileEvent>>,
     pub startup_rx: oneshot::Receiver<()>,
     pub include_updater_task: JoinHandle<Result<(), Error>>,
     pub include_sender: IncludeSender,
@@ -47,21 +54,28 @@ where {
 
         let (event_sender, event_receiver) = mpsc::channel(32);
         let (startup_tx, startup_rx) = oneshot::channel();
-        let arc_globset = Arc::new(RwLock::new(None));
+        let arc_globset = Arc::new(RwLock::new(GlobSet::empty()));
 
         let configuration_clone = configuration.clone();
-        let wx = Watchexec::new(move |mut action| {
-            if action.signals().any(|sig| sig == Signal::Interrupt) {
-                action.quit()
-            }
+        let arc_globset_clone = arc_globset.clone();
+        let wx = Watchexec::new_async(move |mut action| {
+            let event_sender = event_sender.clone();
+            let configuration = configuration_clone.clone();
+            let arc_globset = arc_globset_clone.clone();
+            Box::new(async move {
+                if action.signals().any(|sig| sig == Signal::Interrupt) {
+                    action.quit()
+                }
 
-            if let Some(event) = Self::handle_event(&action.events, &configuration_clone)
-                && let Err(e) = event_sender.try_send(event)
-            {
-                eprintln!("{e}")
-            }
+                if let Some(event) =
+                    Self::handle_event(&action.events, &configuration, &arc_globset).await
+                    && let Err(e) = event_sender.try_send(event)
+                {
+                    eprintln!("{e}")
+                }
 
-            action
+                action
+            })
         })
         .map_err(Box::from)?;
 
@@ -93,24 +107,30 @@ where {
         })
     }
 
-    pub fn handle_event(
+    pub async fn handle_event(
         events: &Arc<[WatchexecEvent]>,
         configuration: &PathBuf,
-    ) -> Option<HashMap<PathBuf, FileEvent>> {
-        let mut seen: HashMap<PathBuf, FileEvent> = HashMap::new();
+        arc_globset: &Arc<RwLock<GlobSet>>,
+    ) -> Option<HashMap<FileType, FileEvent>> {
+        let mut seen: HashMap<FileType, FileEvent> = HashMap::new();
+        let globset_read = arc_globset.read().await;
 
         for action_event in events.iter() {
-            let mut path = Option::<PathBuf>::None;
+            let mut path = Option::<FileType>::None;
             let mut event = Option::<FileEvent>::None;
 
             for tag in &action_event.tags {
                 match tag {
                     Tag::Path { path: tag_path, .. } => {
                         if tag_path == configuration {
-                            // TODO:
+                            path = Some(FileType::Config);
+                            continue;
                         }
 
-                        path = Some(tag_path.clone());
+                        if globset_read.is_match(tag_path) {
+                            path = Some(FileType::File);
+                            continue;
+                        }
                     }
 
                     Tag::FileEventKind(tag_event_kind) => match tag_event_kind {

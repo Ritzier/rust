@@ -7,7 +7,7 @@ use tempfile::TempDir;
 use tokio::fs;
 use tokio::sync::mpsc::Receiver;
 use tokio::time::timeout;
-use watchexec_watcher::{Error, FileEvent, IncludeSender, Watcher};
+use watchexec_watcher::{Error, FileEvent, FileType, IncludeSender, Watcher};
 
 const TIMEOUT: Duration = Duration::from_millis(800);
 
@@ -50,7 +50,7 @@ impl Display for TempFile {
     }
 }
 
-async fn setup_watcher(file: &Path) -> (Receiver<HashMap<PathBuf, FileEvent>>, IncludeSender) {
+async fn setup_watcher(file: &Path) -> (Receiver<HashMap<FileType, FileEvent>>, IncludeSender) {
     let Watcher {
         watchexec_task: _,
         event_receiver,
@@ -107,9 +107,8 @@ async fn modify_remove_cycle() {
     tokio::join!(task1, task2, task3);
 
     let expected = HashMap::from([
-        (config_file.path.clone(), FileEvent::Modify),
-        (include_file1.path.clone(), FileEvent::Modify),
-        (include_file2.path.clone(), FileEvent::Modify),
+        (FileType::Config, FileEvent::Modify),
+        (FileType::File, FileEvent::Modify),
     ]);
     assert_event!(event_receiver, expected);
 
@@ -120,9 +119,72 @@ async fn modify_remove_cycle() {
     tokio::join!(task1, task2, task3);
 
     let expected = HashMap::from([
-        (config_file.path.clone(), FileEvent::Remove),
-        (include_file1.path.clone(), FileEvent::Remove),
-        (include_file2.path.clone(), FileEvent::Remove),
+        (FileType::Config, FileEvent::Remove),
+        (FileType::File, FileEvent::Remove),
     ]);
+    assert_event!(event_receiver, expected);
+}
+
+#[tokio::test]
+async fn only_config_modify_remove_cycle() {
+    let temp = Temp::new();
+    let config_file = temp.create_file("config.toml");
+    config_file.write("initial content").await;
+    let include_file1 = temp.create_file("index.html");
+    include_file1.write("initial content").await;
+
+    // Build `Watcher`
+    let (mut event_receiver, include_sender) = setup_watcher(&config_file.path).await;
+    include_sender
+        .send(vec![include_file1.to_string()])
+        .await
+        .unwrap();
+
+    // Modify in the same time
+    let task = async { config_file.write("modify content").await };
+    tokio::join!(task);
+
+    let expected = HashMap::from([(FileType::Config, FileEvent::Modify)]);
+    assert_event!(event_receiver, expected);
+
+    // Delete
+    let task = async { config_file.delete().await };
+    tokio::join!(task);
+
+    let expected = HashMap::from([(FileType::Config, FileEvent::Remove)]);
+    assert_event!(event_receiver, expected);
+}
+
+#[tokio::test]
+async fn only_files_modify_remove_cycle() {
+    let temp = Temp::new();
+    let config_file = temp.create_file("config.toml");
+    config_file.write("initial content").await;
+    let include_file1 = temp.create_file("index.html");
+    include_file1.write("initial content").await;
+    let include_file2 = temp.create_file("style.css");
+    include_file2.write("initial content").await;
+
+    // Build `Watcher`
+    let (mut event_receiver, include_sender) = setup_watcher(&config_file.path).await;
+    include_sender
+        .send(vec![include_file1.to_string(), include_file2.to_string()])
+        .await
+        .unwrap();
+
+    // Modify in the same time
+    let task2 = async { include_file1.write("modify content").await };
+    let task3 = async { include_file2.write("modify content").await };
+    tokio::join!(task2, task3);
+
+    let expected = HashMap::from([(FileType::File, FileEvent::Modify)]);
+    assert_event!(event_receiver, expected);
+
+    // Delete
+    let task2 = async { include_file1.delete().await };
+    let task3 = async { include_file2.delete().await };
+    tokio::join!(task2, task3);
+
+    let expected = HashMap::from([(FileType::File, FileEvent::Remove)]);
     assert_event!(event_receiver, expected);
 }
