@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf, absolute};
 use std::sync::Arc;
 
-use globset::GlobSet;
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{self, Receiver};
 use tokio::sync::{RwLock, oneshot};
 use tokio::task::{JoinError, JoinHandle};
 use watchexec::error::CriticalError;
@@ -50,13 +49,13 @@ where {
         let (startup_tx, startup_rx) = oneshot::channel();
         let arc_globset = Arc::new(RwLock::new(None));
 
-        let arc_globset_clone = arc_globset.clone();
+        let configuration_clone = configuration.clone();
         let wx = Watchexec::new(move |mut action| {
             if action.signals().any(|sig| sig == Signal::Interrupt) {
                 action.quit()
             }
 
-            if let Some(event) = Self::handle_event(&action.events)
+            if let Some(event) = Self::handle_event(&action.events, &configuration_clone)
                 && let Err(e) = event_sender.try_send(event)
             {
                 eprintln!("{e}")
@@ -66,7 +65,7 @@ where {
         })
         .map_err(Box::from)?;
 
-        wx.config.pathset([configuration]);
+        wx.config.pathset([configuration.clone()]);
 
         let startup_tx = Some(startup_tx);
 
@@ -83,7 +82,7 @@ where {
         let IncludeUpdaterInit {
             include_updater_task,
             include_sender,
-        } = IncludeUpdater::build(wx, arc_globset);
+        } = IncludeUpdater::build(wx, arc_globset, configuration);
 
         Ok(Self {
             watchexec_task,
@@ -94,7 +93,10 @@ where {
         })
     }
 
-    pub fn handle_event(events: &Arc<[WatchexecEvent]>) -> Option<HashMap<PathBuf, FileEvent>> {
+    pub fn handle_event(
+        events: &Arc<[WatchexecEvent]>,
+        configuration: &PathBuf,
+    ) -> Option<HashMap<PathBuf, FileEvent>> {
         let mut seen: HashMap<PathBuf, FileEvent> = HashMap::new();
 
         for action_event in events.iter() {
@@ -104,6 +106,10 @@ where {
             for tag in &action_event.tags {
                 match tag {
                     Tag::Path { path: tag_path, .. } => {
+                        if tag_path == configuration {
+                            // TODO:
+                        }
+
                         path = Some(tag_path.clone());
                     }
 

@@ -7,7 +7,7 @@ async fn main() -> anyhow::Result<()> {
         mut event_receiver,
         startup_rx,
         mut include_updater_task,
-        include_sender,
+        include_sender: _,
     } = Watcher::build("config.toml")?;
 
     startup_rx.await?;

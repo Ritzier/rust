@@ -13,6 +13,7 @@ pub struct IncludeUpdater {
     include_receiver: Receiver<(Vec<String>, oneshot::Sender<()>)>,
     arc_wx: Arc<Watchexec>,
     arc_globset: Arc<RwLock<Option<GlobSet>>>,
+    configuration_path: PathBuf,
 }
 
 pub struct IncludeUpdaterInit {
@@ -24,6 +25,7 @@ impl IncludeUpdater {
     pub fn build(
         arc_wx: Arc<Watchexec>,
         arc_globset: Arc<RwLock<Option<GlobSet>>>,
+        configuration_path: PathBuf,
     ) -> IncludeUpdaterInit {
         let (include_sender, include_receiver) = mpsc::channel(32);
 
@@ -31,6 +33,7 @@ impl IncludeUpdater {
             include_receiver,
             arc_wx,
             arc_globset,
+            configuration_path,
         };
         let include_updater_task = tokio::spawn(async move { include_updater.watch().await });
 
@@ -48,6 +51,7 @@ impl IncludeUpdater {
             mut include_receiver,
             arc_wx,
             arc_globset,
+            configuration_path,
         } = self;
 
         while let Some((include, oneshot_sender)) = include_receiver.recv().await {
@@ -81,6 +85,7 @@ impl IncludeUpdater {
                 }
             };
 
+            paths.push(configuration_path.clone());
             arc_wx.config.pathset(paths);
             *arc_globset.write().await = Some(glob_set);
 

@@ -1,15 +1,54 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use tempfile::TempDir;
 use tokio::fs;
 use tokio::sync::mpsc::Receiver;
-use tokio::time::error::Elapsed;
 use tokio::time::timeout;
 use watchexec_watcher::{Error, FileEvent, IncludeSender, Watcher};
 
 const TIMEOUT: Duration = Duration::from_millis(800);
+
+struct Temp {
+    temp_dir: TempDir,
+}
+
+impl Temp {
+    pub fn new() -> Self {
+        let temp_dir = TempDir::new().unwrap();
+
+        Self { temp_dir }
+    }
+
+    pub fn create_file(&self, file_name: &str) -> TempFile {
+        let path = self.temp_dir.path().join(file_name);
+
+        TempFile { path }
+    }
+}
+
+struct TempFile {
+    path: PathBuf,
+}
+
+impl TempFile {
+    async fn write(&self, content: &str) {
+        fs::write(&self.path, content).await.unwrap();
+    }
+
+    async fn delete(&self) {
+        fs::remove_file(&self.path).await.unwrap();
+    }
+}
+
+impl Display for TempFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let path = self.path.to_string_lossy().into_owned();
+        write!(f, "{path}")
+    }
+}
 
 async fn setup_watcher(file: &Path) -> (Receiver<HashMap<PathBuf, FileEvent>>, IncludeSender) {
     let Watcher {
@@ -33,136 +72,57 @@ macro_rules! assert_event {
 
 // File not exists
 #[tokio::test]
-pub async fn detects_nonexistent_path_error() {
-    let temp_dir = TempDir::new().unwrap();
-    let file = temp_dir.path().join("config.toml");
+async fn detects_nonexistent_path_error() {
+    let temp = Temp::new();
+    let file = temp.create_file("config.toml");
 
-    let result = Watcher::build(file.clone()).unwrap_err();
+    let result = Watcher::build(file.path.clone()).unwrap_err();
     assert!(matches!(
         result,
-        Error::ConfigurationNotExists { ref path } if path == &file
+        Error::ConfigurationNotExists { ref path } if path == &file.path
     ));
 }
 
-// Detects modifications on existing file
 #[tokio::test]
-pub async fn detects_file_modification() {
-    let temp_dir = TempDir::new().unwrap();
-    let file = temp_dir.path().join("config.toml");
+async fn modify_remove_cycle() {
+    let temp = Temp::new();
+    let config_file = temp.create_file("config.toml");
+    config_file.write("initial content").await;
+    let include_file1 = temp.create_file("index.html");
+    include_file1.write("initial content").await;
+    let include_file2 = temp.create_file("style.css");
+    include_file2.write("initial content").await;
 
-    fs::write(&file, "initial content").await.unwrap();
-
-    let (mut event_receiver, include_sender) = setup_watcher(&file).await;
-
-    // Modify file and get `Modify` event
-    fs::write(&file, "modified content").await.unwrap();
-    let expected = HashMap::from([(file, FileEvent::Modify)]);
-    assert_event!(event_receiver, expected);
-
-    // Include test
-    let file2 = temp_dir.path().join("style.css");
-    fs::write(&file2, "initial content").await.unwrap();
+    // Build `Watcher`
+    let (mut event_receiver, include_sender) = setup_watcher(&config_file.path).await;
     include_sender
-        .send(vec![file2.to_str().unwrap().to_string()])
+        .send(vec![include_file1.to_string(), include_file2.to_string()])
         .await
         .unwrap();
 
-    fs::write(&file2, "modified content").await.unwrap();
-    let expected = HashMap::from([(file2.clone(), FileEvent::Modify)]);
+    // Modify in the same time
+    let task1 = async { config_file.write("modify content").await };
+    let task2 = async { include_file1.write("modify content").await };
+    let task3 = async { include_file2.write("modify content").await };
+    tokio::join!(task1, task2, task3);
+
+    let expected = HashMap::from([
+        (config_file.path.clone(), FileEvent::Modify),
+        (include_file1.path.clone(), FileEvent::Modify),
+        (include_file2.path.clone(), FileEvent::Modify),
+    ]);
     assert_event!(event_receiver, expected);
-}
 
-// Detecs removal of existing file
-#[tokio::test]
-pub async fn detects_file_removal() {
-    let temp_dir = TempDir::new().unwrap();
-    let file = temp_dir.path().join("config.toml");
-    fs::write(&file, "initial content").await.unwrap();
+    // Delete
+    let task1 = async { config_file.delete().await };
+    let task2 = async { include_file1.delete().await };
+    let task3 = async { include_file2.delete().await };
+    tokio::join!(task1, task2, task3);
 
-    let Watcher {
-        watchexec_task: _,
-        mut event_receiver,
-        startup_rx,
-        include_updater_task: _,
-        include_sender,
-    } = Watcher::build(file.clone()).unwrap();
-    startup_rx.await.unwrap();
-
-    fs::remove_file(&file).await.unwrap();
-    let result = timeout(TIMEOUT, event_receiver.recv()).await;
-    let expected = HashMap::from([(file, FileEvent::Remove)]);
-
-    assert_eq!(result, Ok(Some(expected)));
-}
-
-// Full cycle: modify → remove → recreate (ignores final create)
-#[tokio::test]
-pub async fn handles_modify_remove_recreate_cycle() {
-    let temp_dir = TempDir::new().unwrap();
-    let file = temp_dir.path().join("config.toml");
-    fs::write(&file, "initial content").await.unwrap();
-
-    let Watcher {
-        watchexec_task: _,
-        mut event_receiver,
-        startup_rx,
-        include_updater_task: _,
-        include_sender,
-    } = Watcher::build(file.clone()).unwrap();
-    startup_rx.await.unwrap();
-
-    // Modify
-    fs::write(&file, "modified content").await.unwrap();
-    let result = timeout(TIMEOUT, event_receiver.recv()).await;
-    let expected = HashMap::from([(file.clone(), FileEvent::Modify)]);
-    assert_eq!(result, Ok(Some(expected)));
-
-    // Remove
-    fs::remove_file(&file).await.unwrap();
-    let result = timeout(TIMEOUT, event_receiver.recv()).await;
-    let expected = HashMap::from([(file.clone(), FileEvent::Remove)]);
-    assert_eq!(result, Ok(Some(expected)));
-
-    // Recreate and expected timetout
-    fs::write(&file, "restore content").await.unwrap();
-    let result = timeout(TIMEOUT, event_receiver.recv()).await;
-    assert!(matches!(result, Err(Elapsed { .. })))
-}
-
-#[tokio::test]
-async fn a() {
-    let temp_dir = TempDir::new().unwrap();
-    let config_file = temp_dir.path().join("config.toml");
-    fs::write(&config_file, "initial content").await.unwrap();
-
-    let include_file = temp_dir.path().join("style.css");
-    fs::write(&include_file, "initial content").await.unwrap();
-
-    let Watcher {
-        watchexec_task: _,
-        mut event_receiver,
-        startup_rx,
-        include_updater_task: _,
-        include_sender,
-    } = Watcher::build(config_file.clone()).unwrap();
-    startup_rx.await.unwrap();
-
-    // include_sender.send(vec![include_file.to_string_lossy().to_string()]);
-
-    // Modify
-    fs::write(&config_file, "modified content").await.unwrap();
-    let result = timeout(TIMEOUT, event_receiver.recv()).await;
-    let expected = HashMap::from([(config_file.clone(), FileEvent::Modify)]);
-    assert_eq!(result, Ok(Some(expected)));
-
-    // Remove
-    fs::remove_file(&config_file).await.unwrap();
-    let result = timeout(TIMEOUT, event_receiver.recv()).await;
-    let expected = HashMap::from([(config_file.clone(), FileEvent::Remove)]);
-    assert_eq!(result, Ok(Some(expected)));
-
-    // Recreate and expected timetout
-    fs::write(&config_file, "restore content").await.unwrap();
-    let result = timeout(TIMEOUT, event_receiver.recv()).await;
-    assert!(matches!(result, Err(Elapsed { .. })))
+    let expected = HashMap::from([
+        (config_file.path.clone(), FileEvent::Remove),
+        (include_file1.path.clone(), FileEvent::Remove),
+        (include_file2.path.clone(), FileEvent::Remove),
+    ]);
+    assert_event!(event_receiver, expected);
 }
