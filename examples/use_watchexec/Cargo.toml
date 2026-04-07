@@ -9,3 +9,6 @@ tokio = { version = "1.51.0", features = ["full"] }
 watchexec = "8.2.0"
 watchexec-events = "6.1.0"
 watchexec-signals = "5.0.1"
+
+[dev-dependencies]
+tempfile = "3.27.0"

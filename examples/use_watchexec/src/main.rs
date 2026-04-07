@@ -5,7 +5,10 @@ async fn main() -> anyhow::Result<()> {
     let Watcher {
         mut watchexec_task,
         mut event_receiver,
-    } = Watcher::build(&["Cargo.toml"])?;
+        startup_rx,
+    } = Watcher::build(["Cargo.toml"])?;
+
+    startup_rx.await?;
 
     loop {
         tokio::select! {

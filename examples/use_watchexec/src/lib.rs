@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use tokio::sync::mpsc::{self, Receiver};
+use tokio::sync::oneshot;
 use tokio::task::{JoinError, JoinHandle};
 use watchexec::error::CriticalError;
 use watchexec::{WatchedPath, Watchexec};
@@ -11,7 +12,7 @@ use watchexec_events::filekind::FileEventKind;
 use watchexec_events::{Event as WatchexecEvent, Tag};
 use watchexec_signals::Signal;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FileEvent {
     Create,
     Remove,
@@ -21,11 +22,16 @@ pub enum FileEvent {
 pub struct Watcher {
     pub watchexec_task: JoinHandle<Result<Result<(), CriticalError>, JoinError>>,
     pub event_receiver: Receiver<HashMap<PathBuf, FileEvent>>,
+    pub startup_rx: oneshot::Receiver<()>,
 }
 
 impl Watcher {
-    pub fn build(path: &[&str]) -> Result<Self> {
+    pub fn build<P>(path: impl IntoIterator<Item = P>) -> Result<Self>
+    where
+        P: Into<WatchedPath>,
+    {
         let (event_sender, event_receiver) = mpsc::channel(32);
+        let (startup_tx, startup_rx) = oneshot::channel();
 
         let wx = Watchexec::new(move |mut action| {
             if action.signals().any(|sig| sig == Signal::Interrupt) {
@@ -41,14 +47,22 @@ impl Watcher {
             action
         })?;
 
-        wx.config
-            .pathset(path.iter().map(|&p| WatchedPath::from(p)));
+        wx.config.pathset(path);
 
-        let watchexec_task = tokio::spawn(async move { wx.main().await });
+        let startup_tx = Some(startup_tx);
+
+        let watchexec_task = tokio::spawn(async move {
+            if let Some(tx) = startup_tx {
+                let _ = tx.send(());
+            }
+
+            wx.main().await
+        });
 
         Ok(Self {
             watchexec_task,
             event_receiver,
+            startup_rx,
         })
     }
 
