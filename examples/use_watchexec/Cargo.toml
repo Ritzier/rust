@@ -1,0 +1,11 @@
+[package]
+name = "use_watchexec"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+tokio = { version = "1.51.0", features = ["full"] }
+watchexec = "8.2.0"
+watchexec-events = "6.1.0"
+watchexec-signals = "5.0.1"
