@@ -60,12 +60,9 @@ impl IncludeUpdater {
 
             for path in include {
                 match Self::process_include(&path) {
-                    Ok(Some((absolute_path, glob_pattern))) => {
+                    Ok((absolute_path, glob_pattern)) => {
                         paths.push(absolute_path);
                         builder.add(glob_pattern);
-                    }
-                    Ok(None) => {
-                        eprintln!("{path} fail")
                     }
                     Err(e) => {
                         eprintln!("{e}")
@@ -95,27 +92,72 @@ impl IncludeUpdater {
         Ok(())
     }
 
-    pub fn process_include(pattern: &String) -> Result<Option<(PathBuf, Glob)>, Error> {
+    // 1. `style.css` -> `/project/path/style.css` && `Glob::new("/project/path/style.css")`
+    // 2. `app/` -> `/project/path/app/` && `Glob::new("/project/path/app/")`
+    // 3. `*.rs` -> `/project/path/` && `Glob::new("/project/path/*.rs")`
+    // 4. `/other/project/**/*.rs` -> `/other/project/`
+    pub fn process_include(pattern: &str) -> Result<(PathBuf, Glob), Error> {
         let has_wildcard = pattern.contains('*') || pattern.contains('?');
+        let is_absolute = pattern.starts_with("/");
 
         match has_wildcard {
             true => {
-                //
-                Ok(None)
-            }
+                let base = pattern
+                    .split('/')
+                    .take_while(|seg| !seg.contains('*') && !seg.contains('?'))
+                    .collect::<Vec<_>>()
+                    .join("/");
 
+                let target_path = match base.is_empty() {
+                    true => PathBuf::from("."),
+                    false => PathBuf::from(&base),
+                };
+
+                let absolute_path = if is_absolute {
+                    target_path
+                } else {
+                    absolute(&target_path).map_err(Error::Absolute)?
+                };
+
+                if !absolute_path.exists() {
+                    return Err(Error::PathNotExists {
+                        pathbuf: absolute_path,
+                    });
+                }
+
+                let absolute_path_str =
+                    absolute_path
+                        .to_str()
+                        .ok_or_else(|| Error::PathIsNotValidUTF8 {
+                            pathbuf: absolute_path.clone(),
+                        })?;
+                let glob_pattern = if is_absolute {
+                    pattern.to_string()
+                } else {
+                    format!("{absolute_path_str}/{pattern}")
+                };
+                let glob = Glob::new(&glob_pattern)?;
+                Ok((absolute_path, glob))
+            }
             false => {
                 let pathbuf = PathBuf::from(pattern);
                 let absolute_path = absolute(&pathbuf).map_err(Error::Absolute)?;
-                let a = absolute_path.to_str().ok_or(Error::PathIsNotValidUTF8 {
-                    pathbuf: absolute_path.clone(),
-                })?;
-                let glob_set = Glob::new(a)?;
 
-                match pathbuf.exists() {
-                    true => Ok(Some((absolute_path, glob_set))),
-                    false => Ok(None),
+                if !absolute_path.exists() {
+                    return Err(Error::PathNotExists {
+                        pathbuf: absolute_path,
+                    });
                 }
+
+                let pattern_str =
+                    absolute_path
+                        .to_str()
+                        .ok_or_else(|| Error::PathIsNotValidUTF8 {
+                            pathbuf: absolute_path.clone(),
+                        })?;
+
+                let glob = Glob::new(pattern_str)?;
+                Ok((absolute_path, glob))
             }
         }
     }
@@ -133,5 +175,134 @@ impl IncludeSender {
         let _ = self.include_sender.send((include, tx)).await;
 
         rx.await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::TempDir;
+    use tokio::fs;
+
+    use super::*;
+
+    #[test]
+    fn not_exist() {
+        let config = "config.toml";
+        let absolute_config = absolute(config).unwrap();
+        let result = IncludeUpdater::process_include(config);
+        eprintln!("{result:#?}");
+        eprintln!("{absolute_config:#?}");
+        assert!(matches!(
+            result,
+            Err(Error::PathNotExists { ref pathbuf }) if pathbuf == &absolute_config
+        ))
+    }
+
+    // Glob
+    #[test]
+    fn glob1() {
+        let pattern = "**.rs";
+        let (pathbuf, glob) = IncludeUpdater::process_include(pattern).unwrap();
+
+        // Expection
+        let expected_pathbuf = PathBuf::from(".");
+        let absolute_pathbuf = absolute(&expected_pathbuf).unwrap();
+        let absolute_pathbuf_str = absolute_pathbuf.to_str().unwrap();
+        let globset_pattern = format!("{absolute_pathbuf_str}/{pattern}");
+
+        assert_eq!(pathbuf, absolute_pathbuf);
+        assert_eq!(glob, Glob::new(&globset_pattern).unwrap());
+    }
+
+    #[test]
+    fn glob2() {
+        let pattern = "*/**.rs";
+        let (pathbuf, glob) = IncludeUpdater::process_include(pattern).unwrap();
+
+        // Expection
+        let expected_pathbuf = PathBuf::from(".");
+        let absolute_pathbuf = absolute(&expected_pathbuf).unwrap();
+        let absolute_pathbuf_str = absolute_pathbuf.to_str().unwrap();
+        let globset_pattern = format!("{absolute_pathbuf_str}/{pattern}");
+
+        assert_eq!(pathbuf, absolute_pathbuf);
+        assert_eq!(glob, Glob::new(&globset_pattern).unwrap());
+    }
+
+    #[test]
+    fn glob3() {
+        let pattern = "should/*.rs";
+        let result = IncludeUpdater::process_include(pattern);
+        let expected_path = absolute(PathBuf::from("should")).unwrap();
+        assert!(
+            matches!(result, Err(Error::PathNotExists { ref pathbuf }) if pathbuf == &expected_path)
+        )
+    }
+
+    #[test]
+    fn glob4() {
+        let pattern = "should/not/exists/*.rs";
+        let result = IncludeUpdater::process_include(pattern);
+        let expected_path = absolute(PathBuf::from("should/not/exists")).unwrap();
+        assert!(
+            matches!(result, Err(Error::PathNotExists { ref pathbuf }) if pathbuf == &expected_path)
+        )
+    }
+
+    #[tokio::test]
+    async fn absolute_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path().join("style.css");
+        fs::write(&path, "initial").await.unwrap();
+        let (pathbuf, glob) = IncludeUpdater::process_include(path.to_str().unwrap()).unwrap();
+
+        assert_eq!(pathbuf, path);
+        assert_eq!(glob, Glob::new(path.to_str().unwrap()).unwrap());
+    }
+
+    #[tokio::test]
+    async fn absolute_path_inner_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir
+            .path()
+            .join("app")
+            .join("src")
+            .join("pages")
+            .join("home.rs");
+        fs::create_dir_all(path.parent().unwrap()).await.unwrap();
+        fs::write(&path, "initial").await.unwrap();
+        let (pathbuf, glob) = IncludeUpdater::process_include(path.to_str().unwrap()).unwrap();
+
+        assert_eq!(pathbuf, path);
+        assert_eq!(glob, Glob::new(path.to_str().unwrap()).unwrap());
+    }
+
+    #[tokio::test]
+    async fn absolute_path_inner_folder() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path().join("app").join("src").join("pages");
+        fs::create_dir_all(&path).await.unwrap();
+        let (pathbuf, glob) = IncludeUpdater::process_include(path.to_str().unwrap()).unwrap();
+
+        assert_eq!(pathbuf, path);
+        assert_eq!(glob, Glob::new(path.to_str().unwrap()).unwrap());
+    }
+
+    // Glob
+    #[tokio::test]
+    async fn globb1() {
+        let temp_dir = TempDir::new().unwrap();
+        let folder = temp_dir.path().join("src").join("pages");
+        let folder_str = folder.to_str().unwrap();
+        let pattern = format!("{folder_str}/**/*.rs");
+
+        // Create `folder`
+        fs::create_dir_all(&folder).await.unwrap();
+
+        // Build
+        let (pathbuf, glob) = IncludeUpdater::process_include(&pattern).unwrap();
+
+        assert_eq!(pathbuf, folder);
+        assert_eq!(glob, Glob::new(&pattern).unwrap());
     }
 }

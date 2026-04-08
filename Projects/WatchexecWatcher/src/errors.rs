@@ -19,4 +19,7 @@ pub enum Error {
 
     #[error("path is not valid UTF-8: {pathbuf}")]
     PathIsNotValidUTF8 { pathbuf: PathBuf },
+
+    #[error("path not exists: {pathbuf}")]
+    PathNotExists { pathbuf: PathBuf },
 }
