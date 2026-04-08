@@ -1,4 +1,4 @@
-use std::path::{PathBuf, absolute};
+use std::path::{Path, PathBuf, absolute};
 use std::sync::Arc;
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
@@ -98,68 +98,62 @@ impl IncludeUpdater {
     // 4. `/other/project/**/*.rs` -> `/other/project/`
     pub fn process_include(pattern: &str) -> Result<(PathBuf, Glob), Error> {
         let has_wildcard = pattern.contains('*') || pattern.contains('?');
-        let is_absolute = pattern.starts_with("/");
+        let path = Path::new(pattern);
 
-        match has_wildcard {
-            true => {
-                let base = pattern
-                    .split('/')
-                    .take_while(|seg| !seg.contains('*') && !seg.contains('?'))
-                    .collect::<Vec<_>>()
-                    .join("/");
+        // 1. Determine base directory
+        let base = match has_wildcard {
+            true => path
+                .components()
+                .take_while(|c| {
+                    let s = c.as_os_str().to_string_lossy();
+                    !s.contains('*') && !s.contains('?')
+                })
+                .collect::<PathBuf>(),
+            false => path.to_path_buf(),
+        };
 
-                let target_path = match base.is_empty() {
-                    true => PathBuf::from("."),
-                    false => PathBuf::from(&base),
-                };
+        let base = match base.as_os_str().is_empty() {
+            true => PathBuf::from("."),
+            false => base,
+        };
 
-                let absolute_path = if is_absolute {
-                    target_path
-                } else {
-                    absolute(&target_path).map_err(Error::Absolute)?
-                };
+        // 2. Make absolute
+        let absolute_base = match base.is_absolute() {
+            true => base,
+            false => absolute(&base).map_err(Error::Absolute)?,
+        };
 
-                if !absolute_path.exists() {
-                    return Err(Error::PathNotExists {
-                        pathbuf: absolute_path,
-                    });
-                }
-
-                let absolute_path_str =
-                    absolute_path
-                        .to_str()
-                        .ok_or_else(|| Error::PathIsNotValidUTF8 {
-                            pathbuf: absolute_path.clone(),
-                        })?;
-                let glob_pattern = if is_absolute {
-                    pattern.to_string()
-                } else {
-                    format!("{absolute_path_str}/{pattern}")
-                };
-                let glob = Glob::new(&glob_pattern)?;
-                Ok((absolute_path, glob))
-            }
-            false => {
-                let pathbuf = PathBuf::from(pattern);
-                let absolute_path = absolute(&pathbuf).map_err(Error::Absolute)?;
-
-                if !absolute_path.exists() {
-                    return Err(Error::PathNotExists {
-                        pathbuf: absolute_path,
-                    });
-                }
-
-                let pattern_str =
-                    absolute_path
-                        .to_str()
-                        .ok_or_else(|| Error::PathIsNotValidUTF8 {
-                            pathbuf: absolute_path.clone(),
-                        })?;
-
-                let glob = Glob::new(pattern_str)?;
-                Ok((absolute_path, glob))
-            }
+        if !absolute_base.exists() {
+            return Err(Error::PathNotExists {
+                pathbuf: absolute_base,
+            });
         }
+
+        // 3. Build glob pattern
+        let glob_pattern = match has_wildcard {
+            true => match path.is_absolute() {
+                true => pattern.to_string(),
+                false => {
+                    let base_str =
+                        absolute_base
+                            .to_str()
+                            .ok_or_else(|| Error::PathIsNotValidUTF8 {
+                                pathbuf: absolute_base.clone(),
+                            })?;
+                    format!("{}/{}", base_str, pattern)
+                }
+            },
+            false => absolute_base
+                .to_str()
+                .ok_or_else(|| Error::PathIsNotValidUTF8 {
+                    pathbuf: absolute_base.clone(),
+                })?
+                .to_string(),
+        };
+
+        let glob = Glob::new(&glob_pattern)?;
+
+        Ok((absolute_base, glob))
     }
 }
 
