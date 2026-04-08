@@ -1,5 +1,3 @@
-mod core;
-mod include_updater;
+mod watcher_core;
 
-pub use core::{FileEvent, FileType, Watcher};
-pub use include_updater::IncludeSender;
+pub use watcher_core::{FileEvent, FileType, Watcher};

@@ -12,9 +12,8 @@ use watchexec_events::filekind::FileEventKind;
 use watchexec_events::{Event as WatchexecEvent, Tag};
 use watchexec_signals::Signal;
 
-use crate::Error;
-
-use super::include_updater::{IncludeSender, IncludeUpdater, IncludeUpdaterInit};
+use crate::include::include_updater::{IncludeUpdater, IncludeUpdaterInit};
+use crate::{Error, IncludeSender};
 
 #[derive(Debug, PartialEq)]
 pub enum FileEvent {
