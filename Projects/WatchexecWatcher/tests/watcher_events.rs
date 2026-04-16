@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -7,7 +6,7 @@ use tempfile::TempDir;
 use tokio::fs;
 use tokio::sync::mpsc::Receiver;
 use tokio::time::timeout;
-use watchexec_watcher::{Error, FileEvent, FileType, IncludeSender, Watcher};
+use watchexec_watcher::{Error, Event, IncludeSender, Watcher};
 
 const TIMEOUT: Duration = Duration::from_millis(800);
 
@@ -50,7 +49,7 @@ impl Display for TempFile {
     }
 }
 
-async fn setup_watcher(file: &Path) -> (Receiver<HashMap<FileType, FileEvent>>, IncludeSender) {
+async fn setup_watcher(file: &Path) -> (Receiver<Event>, IncludeSender) {
     let Watcher {
         watchexec_task: _,
         event_receiver,
@@ -106,11 +105,7 @@ async fn modify_remove_cycle() {
     let task3 = async { include_file2.write("modify content").await };
     tokio::join!(task1, task2, task3);
 
-    let expected = HashMap::from([
-        (FileType::Config, FileEvent::Modify),
-        (FileType::File, FileEvent::Modify),
-    ]);
-    assert_event!(event_receiver, expected);
+    assert_event!(event_receiver, Event::ConfigFileModify);
 
     // Delete
     let task1 = async { config_file.delete().await };
@@ -118,11 +113,7 @@ async fn modify_remove_cycle() {
     let task3 = async { include_file2.delete().await };
     tokio::join!(task1, task2, task3);
 
-    let expected = HashMap::from([
-        (FileType::Config, FileEvent::Remove),
-        (FileType::File, FileEvent::Remove),
-    ]);
-    assert_event!(event_receiver, expected);
+    assert_event!(event_receiver, Event::ConfigRemove);
 }
 
 #[tokio::test]
@@ -144,15 +135,13 @@ async fn only_config_modify_remove_cycle() {
     let task = async { config_file.write("modify content").await };
     tokio::join!(task);
 
-    let expected = HashMap::from([(FileType::Config, FileEvent::Modify)]);
-    assert_event!(event_receiver, expected);
+    assert_event!(event_receiver, Event::ConfigModify);
 
     // Delete
     let task = async { config_file.delete().await };
     tokio::join!(task);
 
-    let expected = HashMap::from([(FileType::Config, FileEvent::Remove)]);
-    assert_event!(event_receiver, expected);
+    assert_event!(event_receiver, Event::ConfigRemove);
 }
 
 #[tokio::test]
@@ -177,14 +166,12 @@ async fn only_files_modify_remove_cycle() {
     let task3 = async { include_file2.write("modify content").await };
     tokio::join!(task2, task3);
 
-    let expected = HashMap::from([(FileType::File, FileEvent::Modify)]);
-    assert_event!(event_receiver, expected);
+    assert_event!(event_receiver, Event::FileModify);
 
     // Delete
     let task2 = async { include_file1.delete().await };
     let task3 = async { include_file2.delete().await };
     tokio::join!(task2, task3);
 
-    let expected = HashMap::from([(FileType::File, FileEvent::Remove)]);
-    assert_event!(event_receiver, expected);
+    assert_event!(event_receiver, Event::FileRemove);
 }
