@@ -5,7 +5,7 @@ use rstest::rstest;
 use tempfile::TempDir;
 use tokio::fs;
 
-use crate::Error;
+use crate::include::errors::IncludeError;
 use crate::include::include_updater::IncludeUpdater;
 
 // ----- Error: path does not exists -----
@@ -16,7 +16,7 @@ fn not_exist_relative_file() {
     let abs = absolute(config).unwrap();
     let result = IncludeUpdater::process_include(config);
     assert!(
-        matches!(result, Err(Error::PathNotExists { ref pathbuf }) if pathbuf == &abs),
+        matches!(result, Err(IncludeError::PathNotExists { ref pathbuf }) if pathbuf == &abs),
         "expected PathNotExists for {abs:?}, got {result:#?}"
     );
 }
@@ -28,7 +28,7 @@ async fn not_exist_absolute_file() {
     let path = temp_dir.path().join("ghost.toml"); // never created
     let result = IncludeUpdater::process_include(path.to_str().unwrap());
     assert!(
-        matches!(result, Err(Error::PathNotExists { ref pathbuf }) if pathbuf == &path),
+        matches!(result, Err(IncludeError::PathNotExists { ref pathbuf }) if pathbuf == &path),
         "expected PathNotExists for {path:?}, got {result:#?}"
     );
 }
@@ -83,7 +83,7 @@ fn glob_nonexistent_base(#[case] pattern: &str, #[case] missing_dir: &str) {
     let result = IncludeUpdater::process_include(pattern);
     let expected = absolute(PathBuf::from(missing_dir)).unwrap();
     assert!(
-        matches!(result, Err(Error::PathNotExists { ref pathbuf }) if pathbuf == &expected),
+        matches!(result, Err(IncludeError::PathNotExists { ref pathbuf }) if pathbuf == &expected),
         "pattern={pattern:?}: expected PathNotExists({expected:?}), got {result:#?}"
     );
 }
@@ -175,7 +175,7 @@ async fn absolute_glob_nonexistent_base() {
 
     let result = IncludeUpdater::process_include(&pattern);
     assert!(
-        matches!(result, Err(Error::PathNotExists { ref pathbuf }) if pathbuf == &missing),
+        matches!(result, Err(IncludeError::PathNotExists { ref pathbuf }) if pathbuf == &missing),
         "expected PathNotExists({missing:?}), got {result:#?}"
     );
 }

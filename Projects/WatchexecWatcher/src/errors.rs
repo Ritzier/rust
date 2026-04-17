@@ -8,18 +8,9 @@ pub enum Error {
     #[error("Configuration path not exists: {path}")]
     ConfigurationNotExists { path: PathBuf },
 
-    #[error("path resolution failed")]
-    Absolute(#[source] std::io::Error),
-
     #[error("watchexec critical error")]
     WxCritical(#[from] Box<CriticalError>),
 
-    #[error("invalid glob pattern")]
-    Glob(#[from] globset::Error),
-
     #[error("path is not valid UTF-8: {pathbuf}")]
     PathIsNotValidUTF8 { pathbuf: PathBuf },
-
-    #[error("path not exists: {pathbuf}")]
-    PathNotExists { pathbuf: PathBuf },
 }

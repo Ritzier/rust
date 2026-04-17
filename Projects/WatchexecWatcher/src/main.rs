@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
     startup_rx.await?;
 
     // Add `watch` path
-    include_sender.send(vec!["**/*.rs".into()]).await?;
+    include_sender.send(vec!["**/*.rs".into()]).await??;
 
     loop {
         tokio::select! {

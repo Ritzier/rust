@@ -9,10 +9,13 @@ use watchexec::Watchexec;
 
 use crate::Error;
 
+use super::errors::IncludeError;
 use super::include_sender::IncludeSender;
 
+type OneshotResult = Result<(), IncludeError>;
+
 pub struct IncludeUpdater {
-    include_receiver: Receiver<(Vec<String>, oneshot::Sender<()>)>,
+    include_receiver: Receiver<(Vec<String>, oneshot::Sender<OneshotResult>)>,
     arc_wx: Arc<Watchexec>,
     arc_globset: Arc<RwLock<GlobSet>>,
     configuration_path: PathBuf,
@@ -59,6 +62,7 @@ impl IncludeUpdater {
         while let Some((include, oneshot_sender)) = include_receiver.recv().await {
             let mut builder = GlobSetBuilder::new();
             let mut paths = Vec::new();
+            let mut error = Option::<IncludeError>::None;
 
             for path in include {
                 match Self::process_include(&path) {
@@ -67,9 +71,14 @@ impl IncludeUpdater {
                         builder.add(glob_pattern);
                     }
                     Err(e) => {
-                        eprintln!("{e}")
+                        error = Some(e);
+                        break;
                     }
                 }
+            }
+            if let Some(e) = error {
+                let _ = oneshot_sender.send(Err(e));
+                continue;
             }
 
             if paths.is_empty() {
@@ -79,7 +88,7 @@ impl IncludeUpdater {
             let glob_set = match builder.build() {
                 Ok(glob_set) => glob_set,
                 Err(e) => {
-                    eprintln!("{e}");
+                    let _ = oneshot_sender.send(Err(IncludeError::Glob(e)));
                     continue;
                 }
             };
@@ -88,7 +97,7 @@ impl IncludeUpdater {
             arc_wx.config.pathset(paths);
             *arc_globset.write().await = glob_set;
 
-            let _ = oneshot_sender.send(());
+            let _ = oneshot_sender.send(Ok(()));
         }
 
         Ok(())
@@ -98,7 +107,7 @@ impl IncludeUpdater {
     // 2. `app/` -> `/project/path/app/` && `Glob::new("/project/path/app/")`
     // 3. `*.rs` -> `/project/path/` && `Glob::new("/project/path/*.rs")`
     // 4. `/other/project/**/*.rs` -> `/other/project/`
-    pub fn process_include(pattern: &str) -> Result<(PathBuf, Glob), Error> {
+    pub fn process_include(pattern: &str) -> Result<(PathBuf, Glob), IncludeError> {
         let has_wildcard = pattern.contains('*') || pattern.contains('?');
         let path = Path::new(pattern);
 
@@ -122,11 +131,11 @@ impl IncludeUpdater {
         // 2. Make absolute
         let absolute_base = match base.is_absolute() {
             true => base,
-            false => absolute(&base).map_err(Error::Absolute)?,
+            false => absolute(&base).map_err(IncludeError::Absolute)?,
         };
 
         if !absolute_base.exists() {
-            return Err(Error::PathNotExists {
+            return Err(IncludeError::PathNotExists {
                 pathbuf: absolute_base,
             });
         }
@@ -139,7 +148,7 @@ impl IncludeUpdater {
                     let base_str =
                         absolute_base
                             .to_str()
-                            .ok_or_else(|| Error::PathIsNotValidUTF8 {
+                            .ok_or_else(|| IncludeError::PathIsNotValidUTF8 {
                                 pathbuf: absolute_base.clone(),
                             })?;
                     format!("{}/{}", base_str, pattern)
@@ -147,7 +156,7 @@ impl IncludeUpdater {
             },
             false => absolute_base
                 .to_str()
-                .ok_or_else(|| Error::PathIsNotValidUTF8 {
+                .ok_or_else(|| IncludeError::PathIsNotValidUTF8 {
                     pathbuf: absolute_base.clone(),
                 })?
                 .to_string(),

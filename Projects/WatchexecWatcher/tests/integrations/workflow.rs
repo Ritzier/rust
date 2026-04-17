@@ -22,7 +22,11 @@ async fn modify_remove_cycle() {
 
     // Build `Watcher`
     let (mut event_receiver, include_sender) = setup_watcher(&temp.config).await;
-    include_sender.send(vec![temp.file_string()]).await.unwrap();
+    include_sender
+        .send(vec![temp.file_string()])
+        .await
+        .unwrap()
+        .unwrap();
 
     // Modify in the same time
     temp.action(&[Action::Write(&[FileType::Config, FileType::File])])
@@ -48,7 +52,11 @@ async fn only_config_modify_remove_cycle() {
 
     // Build `Watcher`
     let (mut event_receiver, include_sender) = setup_watcher(&temp.config).await;
-    include_sender.send(vec![temp.file_string()]).await.unwrap();
+    include_sender
+        .send(vec![temp.file_string()])
+        .await
+        .unwrap()
+        .unwrap();
 
     // Modify `config`
     temp.action(&[Action::Write(&[FileType::Config])]).await;
@@ -71,7 +79,11 @@ async fn only_files_modify_remove_cycle() {
 
     // Build `Watcher`
     let (mut event_receiver, include_sender) = setup_watcher(&temp.config).await;
-    include_sender.send(vec![temp.file_string()]).await.unwrap();
+    include_sender
+        .send(vec![temp.file_string()])
+        .await
+        .unwrap()
+        .unwrap();
 
     // Modify in the same time
     temp.action(&[Action::Write(&[FileType::File])]).await;
