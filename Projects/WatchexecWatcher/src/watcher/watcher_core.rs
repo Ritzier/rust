@@ -19,14 +19,14 @@ use crate::{Error, IncludeSender};
 use super::event::Event;
 
 #[derive(Debug, PartialEq)]
-enum FileEvent {
+pub enum FileEvent {
     Create,
     Remove,
     Modify,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-enum FileType {
+pub enum FileType {
     Config,
     File,
 }
@@ -69,8 +69,10 @@ where {
                     action.quit()
                 }
 
-                if let Some(event) =
+                // Handle `Watcher` action events
+                if let Some(map) =
                     Self::handle_event(&action.events, &configuration, &arc_globset).await
+                    && let Some(event) = Self::merge_events(map)
                     && let Err(e) = event_sender.try_send(event)
                 {
                     eprintln!("{e}")
@@ -113,7 +115,7 @@ where {
         events: &Arc<[WatchexecEvent]>,
         configuration: &PathBuf,
         arc_globset: &Arc<RwLock<GlobSet>>,
-    ) -> Option<Event> {
+    ) -> Option<HashMap<FileType, FileEvent>> {
         let mut seen: HashMap<FileType, FileEvent> = HashMap::new();
         let globset_read = arc_globset.read().await;
 
@@ -167,10 +169,13 @@ where {
             }
         }
 
-        Self::merge_events(seen)
+        match seen.is_empty() {
+            true => None,
+            false => Some(seen),
+        }
     }
 
-    fn merge_events(seen: HashMap<FileType, FileEvent>) -> Option<Event> {
+    pub fn merge_events(seen: HashMap<FileType, FileEvent>) -> Option<Event> {
         match (seen.get(&FileType::Config), seen.get(&FileType::File)) {
             (None, None) => None,
 
