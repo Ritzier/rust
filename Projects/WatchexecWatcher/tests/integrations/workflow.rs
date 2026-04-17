@@ -1,17 +1,5 @@
 use super::*;
 
-// File not exists
-#[tokio::test]
-async fn detects_nonexistent_path_error() {
-    let temp = Temp::new();
-
-    let result = Watcher::build(temp.config.clone()).unwrap_err();
-    assert!(matches!(
-        result,
-        Error::ConfigurationNotExists { ref path } if path == &temp.config
-    ));
-}
-
 // ----- `config` and `file` both -----
 
 #[tokio::test]

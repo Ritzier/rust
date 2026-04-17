@@ -1,3 +1,4 @@
+mod errors;
 mod workflow;
 
 use std::path::{Path, PathBuf};

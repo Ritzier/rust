@@ -4,5 +4,5 @@ pub use errors::Error;
 mod watcher;
 pub use watcher::{Event, Watcher};
 
-mod include;
+pub mod include;
 pub use include::include_sender::IncludeSender;
