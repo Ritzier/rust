@@ -7,10 +7,14 @@ async fn main() -> anyhow::Result<()> {
         mut event_receiver,
         startup_rx,
         mut include_updater_task,
-        include_sender: _,
-    } = Watcher::build("config.toml")?;
+        include_sender,
+    } = Watcher::build("Cargo.toml")?;
 
+    // Wait for ready
     startup_rx.await?;
+
+    // Add `watch` path
+    include_sender.send(vec!["**/*.rs".into()]).await?;
 
     loop {
         tokio::select! {
