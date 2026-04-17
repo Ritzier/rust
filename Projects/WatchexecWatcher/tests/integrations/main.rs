@@ -44,7 +44,7 @@ impl Temp {
     }
 
     pub async fn action<'a>(&self, actions: &[Action<'a>]) {
-        let actions_futures = actions.into_iter().map(|a| self.parse_action(a));
+        let actions_futures = actions.iter().map(|a| self.parse_action(a));
 
         join_all(actions_futures).await;
     }

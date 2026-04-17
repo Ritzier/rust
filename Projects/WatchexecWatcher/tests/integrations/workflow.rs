@@ -35,6 +35,7 @@ async fn modify_remove_cycle() {
         .await;
 
     assert_event!(event_receiver, Event::ConfigRemove);
+    assert!(event_receiver.is_closed());
 }
 
 // ------ Only `config` -----

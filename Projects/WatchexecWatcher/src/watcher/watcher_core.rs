@@ -5,8 +5,9 @@ use std::sync::Arc;
 
 use globset::GlobSet;
 use tokio::sync::mpsc::{self, Receiver};
-use tokio::sync::{RwLock, oneshot};
+use tokio::sync::{Mutex, RwLock, oneshot};
 use tokio::task::{JoinError, JoinHandle};
+use watchexec::action::ActionHandler;
 use watchexec::error::CriticalError;
 use watchexec::{WatchedPath, Watchexec};
 use watchexec_events::filekind::FileEventKind;
@@ -58,28 +59,20 @@ where {
         let (startup_tx, startup_rx) = oneshot::channel();
         let arc_globset = Arc::new(RwLock::new(GlobSet::empty()));
 
+        let event_sender = Arc::new(Mutex::new(Some(event_sender)));
         let configuration_clone = configuration.clone();
         let arc_globset_clone = arc_globset.clone();
-        let wx = Watchexec::new_async(move |mut action| {
-            let event_sender = event_sender.clone();
+        let wx = Watchexec::new_async(move |action| {
             let configuration = configuration_clone.clone();
             let arc_globset = arc_globset_clone.clone();
-            Box::new(async move {
-                if action.signals().any(|sig| sig == Signal::Interrupt) {
-                    action.quit()
-                }
+            let event_sender = event_sender.clone();
 
-                // Handle `Watcher` action events
-                if let Some(map) =
-                    Self::handle_event(&action.events, &configuration, &arc_globset).await
-                    && let Some(event) = Self::merge_events(map)
-                    && let Err(e) = event_sender.try_send(event)
-                {
-                    eprintln!("{e}")
-                }
-
-                action
-            })
+            Box::new(Self::handle_action(
+                action,
+                configuration,
+                arc_globset,
+                event_sender,
+            ))
         })
         .map_err(Box::from)?;
 
@@ -109,6 +102,36 @@ where {
             include_updater_task,
             include_sender,
         })
+    }
+
+    async fn handle_action(
+        mut action: ActionHandler,
+        configuration: PathBuf,
+        arc_globset: Arc<RwLock<GlobSet>>,
+        event_sender: Arc<Mutex<Option<mpsc::Sender<Event>>>>,
+    ) -> ActionHandler {
+        if action.signals().any(|sig| sig == Signal::Interrupt) {
+            action.quit();
+        }
+
+        if let Some(map) = Self::handle_event(&action.events, &configuration, &arc_globset).await
+            && let Some(event) = Self::merge_events(map)
+        {
+            let mut sender_guard = event_sender.lock().await;
+
+            if let Some(sender) = sender_guard.as_ref()
+                && let Err(e) = sender.try_send(event)
+            {
+                eprintln!("{e}");
+            }
+
+            // Close `channel` when `ConfigRemove`
+            if event == Event::ConfigRemove {
+                sender_guard.take();
+            }
+        }
+
+        action
     }
 
     pub async fn handle_event(
