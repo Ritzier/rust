@@ -1,0 +1,41 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+app = { path = "../app", default-features = false }
+leptos_axum = { workspace = true, optional = true }
+leptos_meta = { workspace = true, optional = true }
+leptos_router = { workspace = true, optional = true }
+leptos = { workspace = true }
+
+# Server runtime
+axum = { workspace = true, optional = true, features = ["macros"] }
+
+# Async runtime
+tokio = { workspace = true, features = [
+  "rt-multi-thread",
+  "signal",
+], optional = true }
+
+# Better error handling
+color-eyre = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
+
+[features]
+default = []
+ssr = [
+  "app/ssr",
+  "dep:leptos_axum",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
+
+  # Server runtime
+  "dep:axum",
+  "dep:tokio",
+
+  # Better error handling
+  "dep:color-eyre",
+  "dep:thiserror",
+]

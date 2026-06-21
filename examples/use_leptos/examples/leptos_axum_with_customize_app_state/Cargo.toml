@@ -1,0 +1,73 @@
+[workspace]
+resolver = "2"
+members = ["app", "frontend", "server"]
+
+[profile.dev]
+opt-level = 0
+debug = 1
+incremental = true
+codegen-units = 1024
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.wasm-release]
+inherits = "release"
+codegen-units = 1
+lto = true
+opt-level = 'z'
+panic = "abort"
+strip = true
+
+[workspace.dependencies]
+leptos = { version = "0.8" }
+leptos_meta = { version = "0.8" }
+leptos_router = { version = "0.8" }
+leptos_axum = { version = "0.8" }
+
+# WASM
+wasm-bindgen = "0.2"
+
+# Server runtime
+axum = "0.8"
+
+# Async runtime
+tokio = { version = "1" }
+
+# Better error handling
+color-eyre = "0.6"
+thiserror = "2"
+
+# Logging
+console_error_panic_hook = "0.1.7"
+
+[[workspace.metadata.leptos]]
+name = "leptos_axum_with_customize_app_state"
+output-name = "leptos_axum_with_customize_app_state"
+
+bin-package = "server"
+lib-package = "frontend"
+
+style-file = "style/main.scss"
+# tailwind-input-file = "style/tailwind.css"
+
+site-root = "target/site"
+site-pkg-dir = "pkg"
+assets-dir = "public"
+
+site-addr = "127.0.0.1:3000"
+reload-port = 3001
+
+browserquery = "defaults"
+
+bin-features = ["ssr"]
+bin-default-features = false
+lib-features = ["hydrate"]
+lib-default-features = false
+lib-profile-release = "wasm-release"
+
+disable-erase-components = true
