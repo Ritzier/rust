@@ -20,21 +20,22 @@ impl Server {
 
         let app_state = AppState {
             number: Arc::new(AtomicU8::new(10)),
-            leptos_options,
         };
 
         let app = Router::new()
             .leptos_routes_with_context(
-                &app_state,
+                &leptos_options,
                 routes,
+                move || provide_context(app_state.clone()),
                 {
-                    let app_state = app_state.clone();
-                    move || provide_context(app_state.clone())
+                    let leptos_options = leptos_options.clone();
+                    move || shell(leptos_options.clone())
                 },
-                App,
             )
-            .fallback(leptos_axum::file_and_error_handler::<AppState, _>(shell))
-            .with_state(app_state);
+            .fallback(leptos_axum::file_and_error_handler::<LeptosOptions, _>(
+                shell,
+            ))
+            .with_state(leptos_options);
 
         let listener = tokio::net::TcpListener::bind(&addr)
             .await
