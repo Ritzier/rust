@@ -11,7 +11,7 @@ leptos_router = { workspace = true, optional = true }
 leptos = { workspace = true }
 
 # Server runtime
-axum = { workspace = true, optional = true, features = ["macros"] }
+axum = { workspace = true, optional = true }
 
 # Async runtime
 tokio = { workspace = true, features = [
