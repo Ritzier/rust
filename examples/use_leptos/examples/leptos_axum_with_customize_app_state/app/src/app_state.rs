@@ -1,9 +1,7 @@
 use std::sync::Arc;
 use std::sync::atomic::AtomicU8;
 
-use axum::extract::FromRef;
-
-#[derive(FromRef, Clone)]
+#[derive(Clone)]
 pub struct AppState {
     pub number: Arc<AtomicU8>,
 }

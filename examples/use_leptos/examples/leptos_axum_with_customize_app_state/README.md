@@ -10,37 +10,40 @@ axum = { version = "...", features = ["macros"] }
 
 `Arc<AtomicU8>` is used because `AppState` must be `Clone`, and `AtomicU8` is not `Clone` on its own.
 
+Note: `AppState` no longer needs to embed `LeptosOptions` or derive `FromRef<LeptosOptions>`. `LeptosOptions` is passed
+directly as the Axum router state instead.
+
 ```rust
-#[derive(FromRef, Clone)]
+#[derive(Clone)]
 pub struct AppState {
     pub number: Arc<AtomicU8>,
-    pub leptos_options: LeptosOptions,
 }
 ```
 
-## Steup (leptos_axum)
+## Setup (leptos_axum)
 
-The turbofish `::<AppState, _>` on `file_and_error_handler` is required so the compiler can resolve
-`LeptosOptions: FromRef<AppState>`.
+`AppState` is injected into the request context via `leptos_routes_with_context`. `LeptosOptions` is used directly as
+the router state, so the `FromRef` turbofish is typed accordingly.
 
 ```rust
 let app_state = AppState {
     number: Arc::new(AtomicU8::new(10)),
-    leptos_options,
 };
 
 let app = Router::new()
     .leptos_routes_with_context(
-        &app_state,
+        &leptos_options,
         routes,
+        move || provide_context(app_state.clone()),
         {
-            let app_state = app_state.clone();
-            move || provide_context(app_state.clone())
+            let leptos_options = leptos_options.clone();
+            move || shell(leptos_options.clone())
         },
-        App,
     )
-    .fallback(leptos_axum::file_and_error_handler::<AppState, _>(shell))
-    .with_state(app_state);
+    .fallback(leptos_axum::file_and_error_handler::<LeptosOptions, _>(
+        shell,
+    ))
+    .with_state(leptos_options);
 ```
 
 ## Usage

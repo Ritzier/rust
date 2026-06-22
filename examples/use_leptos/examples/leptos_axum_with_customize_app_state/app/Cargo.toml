@@ -9,9 +9,6 @@ leptos_meta.workspace = true
 leptos_router.workspace = true
 leptos_axum = { workspace = true, optional = true }
 
-# Axum
-axum = { workspace = true, optional = true, features = ["macros"] }
-
 # Async
 tokio = { workspace = true, optional = true }
 
@@ -24,10 +21,6 @@ ssr = [
   "leptos_router/ssr",
   "dep:leptos_axum",
 
-  # Axum
-  "dep:axum",
-
   # Async
   "dep:tokio",
 ]
-
